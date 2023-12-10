@@ -1,9 +1,7 @@
-# daq-firmware-base-24
+# daq-wireless-com
+Ensuring reliability in communication protocols is hard. As programmers, we seek to abstract away logic in order to (hopefully) provide clarity.
+The logic NFR's Wireless Board's firmware has been complex enough to warrant the abstraction of an integral part of the project - namely the implementation of an application and transport layer communication protocol.
 
-This repository is the base repo, which daq projects should fork from as needed. The base is configured to work with ESP32-based projects, which may not be the case for your project.
+This repository provides an abstraction of these communication protocols, and rigorous-software based testing of the communication protocols through the simulation of a lossy communication channel in a busy enviornment. By pulling this code out of the main firmware repository, we intend to use a more-declaritive programming style in the main loops of the wireless firmware, whilst providing reusability for future years.
 
-**Checkout some learning resources [here!](./RESOURCES.md)**
-
-## Important Notes
-* For the **Logger, Wireless, and Dashboard Projects**, you will not be using the ESP32 enviornment configured here. Instead, you should go to ```platformio.ini``` and uncomment the teensy enviornment.
-* In formula, we use a branching naming convention ```<initials>/<branch-name>```. So if I were to make a branch called ```analysis-backend```, it should be called ```ebs/analysis-backend```. Notice how we use kebab case, which is the standard in git related things.
+Keep posted for updates on this library, including more detailed documentation and an overview of the relatively custom protocols.
