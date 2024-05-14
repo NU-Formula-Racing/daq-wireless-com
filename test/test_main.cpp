@@ -75,21 +75,21 @@ void test_meta_message()
 
     TEST_ASSERT_TRUE(res.success);
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_META, res.contentType);
-    TEST_ASSERT_EQUAL(8, res.data.size());
+    TEST_ASSERT_EQUAL(8, res.payload.size());
 
     std::cout << "Decoded metadata, testing the data" << std::endl;
 
     // test the data
-    TEST_ASSERT_EQUAL(4, res.data[0]);
+    TEST_ASSERT_EQUAL(4, res.payload[0]);
     for (int i = 0; i < schemaName.size(); i++)
     {
-        TEST_ASSERT_EQUAL(schemaName[i], res.data[i + 1]);
+        TEST_ASSERT_EQUAL(schemaName[i], res.payload[i + 1]);
     }
 
     // test the version
-    TEST_ASSERT_EQUAL(1, res.data[5]);
-    TEST_ASSERT_EQUAL(0, res.data[6]);
-    TEST_ASSERT_EQUAL(1, res.data[7]);
+    TEST_ASSERT_EQUAL(1, res.payload[5]);
+    TEST_ASSERT_EQUAL(0, res.payload[6]);
+    TEST_ASSERT_EQUAL(1, res.payload[7]);
 }
 
 void test_meta_message_request()
@@ -107,7 +107,7 @@ void test_meta_message_request()
     Message::MessageParsingResult res = Message::decode(packets[0]);
     TEST_ASSERT_TRUE(res.success);
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_META, res.contentType);
-    TEST_ASSERT_EQUAL(0, res.data.size());
+    TEST_ASSERT_EQUAL(0, res.payload.size());
 }
 
 void test_drive_message(void)
@@ -127,13 +127,72 @@ void test_drive_message(void)
     Message::MessageParsingResult res = Message::decode(packets[0]);
     TEST_ASSERT_TRUE(res.success);
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, res.contentType);
-    TEST_ASSERT_EQUAL(content.size() + 1, res.data.size());
+    TEST_ASSERT_EQUAL(content.size() + 1, res.payload.size());
 
     // test the data
-    TEST_ASSERT_EQUAL(content.size(), res.data[0]);
+    TEST_ASSERT_EQUAL(content.size(), res.payload[0]);
     for (int i = 0; i < content.size(); i++)
     {
-        TEST_ASSERT_EQUAL(content[i], res.data[i + 1]);
+        TEST_ASSERT_EQUAL(content[i], res.payload[i + 1]);
+    }
+}
+
+void test_drive_message_request(void)
+{
+    Message msg = Message::createDriveMessageRequest();
+    TEST_ASSERT_EQUAL(MessageType::MSG_REQUEST, msg.flag.getMessageType());
+    TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, msg.flag.getMessageContentType());
+
+    // test the encoding
+    std::vector<EncodedMessagePacket> packets = msg.encode();
+    // should be 1 packet, since the data is small
+    TEST_ASSERT_EQUAL(1, packets.size());
+
+    // test the decoding
+    Message::MessageParsingResult res = Message::decode(packets[0]);
+    TEST_ASSERT_TRUE(res.success);
+    TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, res.contentType);
+    TEST_ASSERT_EQUAL(0, res.payload.size());
+}
+
+void test_long_message(void)
+{
+    // create a long message
+    std::string content = "";
+
+    for (int i = 0; i < 1000; i++)
+    {
+        content += "a";
+    }
+
+    Message msg = Message::createDriveMessageResponse(content);
+
+    // test the encoding
+    std::vector<EncodedMessagePacket> packets = msg.encode();
+    // this should not be 1 packet, since the data is large
+    TEST_ASSERT_TRUE(packets.size() > 1);
+
+    // test the decoding
+    for (int i = 0; i < packets.size(); i++)
+    {
+        Message::MessageParsingResult res = Message::decode(packets[i]);
+        TEST_ASSERT_TRUE(res.success);
+        TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, res.contentType);
+
+        if (i == packets.size() - 1)
+        {
+            TEST_ASSERT_EQUAL(content.size() % MAX_PACKET_SIZE, res.payload.size());
+        }
+        else
+        {
+            TEST_ASSERT_EQUAL(255, res.payload.size());
+        }
+
+        // test the data
+        for (int j = 0; j < res.payload.size(); j++)
+        {
+            TEST_ASSERT_EQUAL(content[i * 255 + j], res.payload[j]);
+        }
     }
 }
 
@@ -148,6 +207,8 @@ int main(int argc, char **argv)
     RUN_TEST(test_meta_message);
     RUN_TEST(test_meta_message_request);
     RUN_TEST(test_drive_message);
+    RUN_TEST(test_drive_message_request);
+    RUN_TEST(test_long_message);
 
     std::cout << "*** FINISHED RUNNING TESTS ***" << std::endl;
     return UNITY_END();
