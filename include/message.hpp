@@ -35,8 +35,11 @@ namespace wircom
         // FLAG Bits
         // 0: Message Type -- 0: Request, 1: Response
         // 1: Long Message -- 0: Short Message, 1: Long Message
-        // 2: Message Content -- 0: Meta/Drive info, 1: switch data rate, or data transfer
-        // 3: Message Content -- if 2 is 0, 0: Meta, 1: Drive, if 2 is 1, 0: Switch Data Rate, 1: Data Transfer
+        // 2-3 : Message Content Type, interpreted as an integer
+        //  0: Meta Data
+        //  1: Drive
+        //  2: Switch Data Rate
+        //  3: Data Transfer
         // 4-7: Reserved
 
         MessageFlag() : raw(0) {}
@@ -49,18 +52,16 @@ namespace wircom
             switch (content)
             {
             case MSG_CON_META:
-                raw |= BIT_FLAG(2);
+                raw |= (0 << 2);
                 break;
             case MSG_CON_DRIVE:
-                raw |= BIT_FLAG(2);
-                raw |= BIT_FLAG(3);
+                raw |= (1 << 2);
                 break;
             case MSG_CON_SWITCH_DATA_RATE:
-                raw |= BIT_FLAG(2);
-                break; // flag |= 0
+                raw |= (2 << 2);
+                break;
             case MSG_CON_DATA_TRANSFER:
-                raw |= BIT_FLAG(2);
-                raw |= BIT_FLAG(3);
+                raw |= (3 << 2);
                 break;
             default:
                 break;
@@ -74,7 +75,7 @@ namespace wircom
 
         MessageContentType getMessageContentType() const
         {
-            return MessageContentType((raw >> 2) & 0x1);
+            return MessageContentType((raw >> 2) & 0x3);
         }
 
         // equal operator for MessageFlag/uint8_t
@@ -100,7 +101,7 @@ namespace wircom
     class Message
     {
     public:
-        static Message createMetaMessage(std::string &schemaName, int major, int minor, int patch)
+        static Message createMetaMessageResponse(std::string &schemaName, int major, int minor, int patch)
         {
             std::vector<std::uint8_t> data;
             data.push_back(schemaName.size());
@@ -119,7 +120,7 @@ namespace wircom
             return Message(MSG_REQUEST, MSG_CON_META, std::vector<std::uint8_t>());
         }
 
-        static Message createDriveMessage(const std::string &driveName, const std::string &driveContent)
+        static Message createDriveMessageResponse(const std::string &driveName, const std::string &driveContent)
         {
             std::vector<std::uint8_t> data;
             data.push_back(driveName.size());
@@ -149,7 +150,7 @@ namespace wircom
             return Message(MSG_REQUEST, MSG_CON_SWITCH_DATA_RATE, data);
         }
 
-        static Message createSwitchDataRateMessage(bool okay)
+        static Message createSwitchDataRateMessageResponse(bool okay)
         {
             std::vector<std::uint8_t> data;
             data.push_back(okay);
@@ -165,10 +166,11 @@ namespace wircom
             MessageParsingResult(bool success, MessageContentType contentType, std::vector<std::uint8_t> data) : success(success), contentType(contentType), data(data) {}
         };
 
-        static MessageParsingResult parsePacket(const EncodedMessagePacket &packet)
+        static MessageParsingResult decode(const EncodedMessagePacket &packet)
         {
             if (packet.size() < 5)
             {
+                std::cout << "Message Parsing Error: Packet size is too small" << std::endl;
                 return MessageParsingResult(false, MSG_CON_META, std::vector<std::uint8_t>());
             }
 
@@ -177,6 +179,7 @@ namespace wircom
             {
                 if (packet[i] != MSG_IDENTIFIER[i])
                 {
+                    std::cout << "Message Parsing Error: Invalid message identifier" << std::endl;
                     return MessageParsingResult(false, MSG_CON_META, std::vector<std::uint8_t>());
                 }
             }
@@ -196,9 +199,12 @@ namespace wircom
                 data.push_back(packet[i]);
             }
 
-            if (data.size() != dataSize)
+            int headerSize = std::end(MSG_IDENTIFIER) - std::begin(MSG_IDENTIFIER) + 1;
+
+            if (data.size() - headerSize  != dataSize)
             {
-                std::cout << "Data size does not match the packet size" << std::endl;
+                std::cout << "Message Parsing Error: Data size does not match the packet size" << std::endl;
+                std::cout << "Data size: " << data.size() << " Expected size: " << (unsigned int)dataSize << std::endl;
                 return MessageParsingResult(false, MSG_CON_META, std::vector<std::uint8_t>());
             }
 
@@ -212,13 +218,17 @@ namespace wircom
         {
             // split the data into packets
             std::vector<EncodedMessagePacket> packets;
-            std::vector<std::uint8_t> data = data;
+            std::vector<std::uint8_t> slice = data;
 
-            while (data.size() > 0)
+            while (slice.size() > 0)
             {
-                EncodedMessagePacket packet = this->_buildPacket(data);
+                std::cout << "Data size: " << slice.size() << std::endl;
+                EncodedMessagePacket packet = this->_buildPacket(slice);
+                std::cout << "Packet size: " << packet.size() << std::endl;
                 // slice the data
-                data = std::vector<std::uint8_t>(data.begin() + MAX_PACKET_SIZE, data.end());
+                int offset = (slice.size() > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : slice.size();
+                slice = std::vector<std::uint8_t>(slice.begin() + offset, slice.end());
+
                 packets.push_back(packet);
             }
 

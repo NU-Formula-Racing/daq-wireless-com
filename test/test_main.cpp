@@ -42,10 +42,54 @@ void test_message_flag()
 void test_meta_message()
 {
     std::string schemaName = "Test";
-    Message msg = Message::createMetaMessage(schemaName, 1, 0, 1);
-    TEST_ASSERT_EQUAL(0, msg.flag.raw);
+    Message msg = Message::createMetaMessageResponse(schemaName, 1, 0, 1);
+    TEST_ASSERT_EQUAL(MessageType::MSG_RESPONSE, msg.flag.getMessageType());
+    TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_META, msg.flag.getMessageContentType());
 
+    // now test that the data is correct
+    // should be encoded using run length encoding
+    TEST_ASSERT_EQUAL(8, msg.data.size());
+    TEST_ASSERT_EQUAL(4, msg.data[0]);
+    for (int i = 0; i < schemaName.size(); i++)
+    {
+        TEST_ASSERT_EQUAL(schemaName[i], msg.data[i + 1]);
+    }
 
+    // test the version
+    TEST_ASSERT_EQUAL(1, msg.data[5]);
+    TEST_ASSERT_EQUAL(0, msg.data[6]);
+    TEST_ASSERT_EQUAL(1, msg.data[7]);
+
+    // test encoding
+    std::vector<EncodedMessagePacket> packets = msg.encode();
+    // test the decoding
+    // should be 1 packet, since the data is small
+    TEST_ASSERT_EQUAL(1, packets.size());
+
+    std::cout << "Encoded metadata" << std::endl;
+
+    // test the decoding
+    Message::MessageParsingResult res = Message::decode(packets[0]);
+
+    std::cout << "Decoded metadata, testing the result" << std::endl;
+
+    TEST_ASSERT_TRUE(res.success);
+    TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_META, res.contentType);
+    TEST_ASSERT_EQUAL(8, res.data.size());
+
+    std::cout << "Decoded metadata, testing the data" << std::endl;
+
+    // test the data
+    TEST_ASSERT_EQUAL(4, res.data[0]);
+    for (int i = 0; i < schemaName.size(); i++)
+    {
+        TEST_ASSERT_EQUAL(schemaName[i], res.data[i + 1]);
+    }
+
+    // test the version
+    TEST_ASSERT_EQUAL(1, res.data[5]);
+    TEST_ASSERT_EQUAL(0, res.data[6]);
+    TEST_ASSERT_EQUAL(1, res.data[7]);
 }
 
 
