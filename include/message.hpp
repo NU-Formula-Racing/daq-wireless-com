@@ -120,14 +120,10 @@ namespace wircom
             return Message(MSG_REQUEST, MSG_CON_META, std::vector<std::uint8_t>());
         }
 
-        static Message createDriveMessageResponse(const std::string &driveName, const std::string &driveContent)
+        static Message createDriveMessageResponse(const std::string &driveContent)
         {
             std::vector<std::uint8_t> data;
-            data.push_back(driveName.size());
-            for (char c : driveName)
-            {
-                data.push_back(c);
-            }
+
             data.push_back(driveContent.size());
             for (char c : driveContent)
             {
@@ -219,6 +215,14 @@ namespace wircom
             // split the data into packets
             std::vector<EncodedMessagePacket> packets;
             std::vector<std::uint8_t> slice = data;
+
+            if (slice.size() == 0)
+            {
+                // no data to send
+                EncodedMessagePacket packet = this->_buildPacket(slice);
+                packets.push_back(packet);
+                return packets;
+            }
 
             while (slice.size() > 0)
             {
