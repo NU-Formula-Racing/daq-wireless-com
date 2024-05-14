@@ -193,22 +193,22 @@ namespace wircom
                 return MessageParsingResult(true, MSG_CON_META, std::vector<std::uint8_t>());
             }
 
-            std::vector<std::uint8_t> data;
+            std::vector<std::uint8_t> payload;
             for (int i = 5; i < packet.size(); i++)
             {
-                data.push_back(packet[i]);
+                payload.push_back(packet[i]);
             }
 
             int headerSize = std::end(MSG_IDENTIFIER) - std::begin(MSG_IDENTIFIER) + 1;
 
-            if (data.size() - headerSize  != dataSize)
+            if (payload.size() != dataSize)
             {
                 std::cout << "Message Parsing Error: Data size does not match the packet size" << std::endl;
-                std::cout << "Data size: " << data.size() << " Expected size: " << (unsigned int)dataSize << std::endl;
+                std::cout << "Data size: " << payload.size() << " Expected size: " << (unsigned int)dataSize << std::endl;
                 return MessageParsingResult(false, MSG_CON_META, std::vector<std::uint8_t>());
             }
 
-            return MessageParsingResult(true, MessageContentType((flag.raw >> 2) & 0x1), data);
+            return MessageParsingResult(true, MessageContentType((flag.raw >> 2) & 0x1), payload);
         }
 
         MessageFlag flag;
@@ -227,6 +227,7 @@ namespace wircom
                 std::cout << "Packet size: " << packet.size() << std::endl;
                 // slice the data
                 int offset = (slice.size() > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : slice.size();
+                std::cout << "Offset: " << offset << std::endl;
                 slice = std::vector<std::uint8_t>(slice.begin() + offset, slice.end());
 
                 packets.push_back(packet);
@@ -244,7 +245,8 @@ namespace wircom
             EncodedMessagePacket packet;
             for (char c : MSG_IDENTIFIER)
             {
-                packet.push_back(c);
+                if (c != '\0')
+                    packet.push_back(c);
             }
 
             packet.push_back(flag.raw);
