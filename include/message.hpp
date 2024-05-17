@@ -5,10 +5,13 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <bitset>
 
 #define MSG_IDENTIFIER "NFR"
 #define BIT_FLAG(x) (1 << x)
 #define MAX_PACKET_SIZE 256 // in bytes
+#define HEADER_SIZE 5
+#define MAX_PAYLOAD_SIZE (MAX_PACKET_SIZE - HEADER_SIZE)
 
 namespace wircom
 {
@@ -190,6 +193,8 @@ namespace wircom
 
             MessageFlag flag;
             flag.raw = packet[3];
+            // print the flag bits
+            std::cout << "Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
             int payloadStart = 4;
 
             if (flag.isLongMessage())
@@ -266,11 +271,13 @@ namespace wircom
             while (slice.size() > 0)
             {
                 std::cout << "Data size: " << slice.size() << std::endl;
-                EncodedMessagePacket packet = this->_buildPacket(slice);
-                std::cout << "Packet size: " << packet.size() << std::endl;
                 // slice the data
-                int offset = (slice.size() > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : slice.size();
+                int offset = (slice.size() > MAX_PAYLOAD_SIZE) ? MAX_PAYLOAD_SIZE : slice.size();
                 std::cout << "Offset: " << offset << std::endl;
+                std::vector<std::uint8_t> packetData = std::vector<std::uint8_t>(slice.begin(), slice.begin() + MAX_PAYLOAD_SIZE);
+                EncodedMessagePacket packet = this->_buildPacket(packetData);
+
+                std::cout << "Packet size: " << packet.size() << std::endl;
                 slice = std::vector<std::uint8_t>(slice.begin() + offset, slice.end());
 
                 packets.push_back(packet);
@@ -281,7 +288,12 @@ namespace wircom
 
     private:
 
-        Message(MessageType type, MessageContentType content, const std::vector<std::uint8_t> &data) : flag(MessageFlag(type, content)), data(data) {}
+        Message(MessageType type, MessageContentType content, const std::vector<std::uint8_t> &data) : flag(MessageFlag(type, content)), data(data) {
+            if (data.size() > MAX_PAYLOAD_SIZE)
+            {
+                this->flag.markAsLongMessage();
+            }
+        }
 
         EncodedMessagePacket _buildPacket(std::vector<std::uint8_t> &data, int packetNumber = 0, int packetCount = 0) const
         {
@@ -294,8 +306,11 @@ namespace wircom
 
             packet.push_back(flag.raw);
 
+            // print the flag bits
+            std::cout << "Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
+
             // make sure the packet size is less than MAX_PACKET_SIZE
-            if (data.size() > MAX_PACKET_SIZE)
+            if (data.size() > MAX_PAYLOAD_SIZE)
             {
                 std::cout << "Data size is too large for a single packet" << std::endl;
                 packet.push_back(0);
