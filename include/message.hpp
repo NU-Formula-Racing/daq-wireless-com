@@ -224,7 +224,8 @@ namespace wircom
 
             if (dataSize == 0)
             {
-                return MessageParsingResult(true, MSG_CON_META, std::vector<std::uint8_t>());
+                // this has no payload
+                return MessageParsingResult(true, flag.getMessageContentType(), std::vector<std::uint8_t>());
             }
 
             std::vector<std::uint8_t> payload;

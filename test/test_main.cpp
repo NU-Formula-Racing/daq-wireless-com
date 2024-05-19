@@ -172,6 +172,7 @@ void test_long_message(void)
     // this should not be 1 packet, since the data is large
     TEST_ASSERT_TRUE(packets.size() > 1);
 
+    int totallyPayloadSize = 0;
     // test the decoding
     for (int i = 0; i < packets.size(); i++)
     {
@@ -181,20 +182,24 @@ void test_long_message(void)
 
         if (i == packets.size() - 1)
         {
-            TEST_ASSERT_EQUAL(content.size() % MAX_PACKET_SIZE, res.payload.size());
+            TEST_ASSERT_EQUAL(content.size() % MAX_LONG_MSG_PAYLOAD_SIZE, res.payload.size());
         }
         else
         {
-            TEST_ASSERT_EQUAL(MAX_SHORT_MSG_PAYLOAD_SIZE, res.payload.size());
+            TEST_ASSERT_EQUAL(MAX_LONG_MSG_PAYLOAD_SIZE, res.payload.size());
         }
+
+        totallyPayloadSize += res.payload.size();
 
         // test the data
         for (int j = 0; j < res.payload.size(); j++)
         {
-            std::cout << "Comparing " << content[i * (MAX_SHORT_MSG_PAYLOAD_SIZE) + j] << " with " << res.payload[j] << std::endl;
+            // std::cout << "Comparing " << content[i * (MAX_LONG_MSG_PAYLOAD_SIZE) + j] << " with " << res.payload[j] << std::endl;
             // TEST_ASSERT_EQUAL((std::uint8_t)content[i * (MAX_SHORT_MSG_PAYLOAD_SIZE) + j], res.payload[j]);
         }
     }
+
+    TEST_ASSERT_EQUAL(content.size(), totallyPayloadSize);
 }
 
 
