@@ -10,8 +10,10 @@
 #define MSG_IDENTIFIER "NFR"
 #define BIT_FLAG(x) (1 << x)
 #define MAX_PACKET_SIZE 256 // in bytes
-#define HEADER_SIZE 5
-#define MAX_PAYLOAD_SIZE (MAX_PACKET_SIZE - HEADER_SIZE)
+#define SHORT_MSG_HEADER_SIZE 5
+#define LONG_MSG_HEADER_SIZE 7 // for long messages
+#define MAX_SHORT_MSG_PAYLOAD_SIZE (MAX_PACKET_SIZE - SHORT_MSG_HEADER_SIZE)
+#define MAX_LONG_MSG_PAYLOAD_SIZE (MAX_PACKET_SIZE - LONG_MSG_HEADER_SIZE)
 
 namespace wircom
 {
@@ -209,7 +211,16 @@ namespace wircom
                 return MessageParsingResult(false, MSG_CON_META, std::vector<std::uint8_t>());
             }
 
+            // std::cout << "Payload start: " << payloadStart << std::endl;
             std::uint8_t dataSize = packet[payloadStart];
+
+            // std::cout << "packet[payloadStart - 4] " << (unsigned int)packet[payloadStart - 4] << std::endl;
+            // std::cout << "packet[payloadStart - 3]" << (unsigned int)packet[payloadStart - 3] << std::endl;
+            // std::cout << "packet[payloadStart - 2]" << (unsigned int)packet[payloadStart - 2] << std::endl;
+            // std::cout << "packet[payloadStart - 1] " << (unsigned int)packet[payloadStart - 1] << std::endl;
+            // std::cout << "packet[payloadStart]: " << (unsigned int)packet[payloadStart] << std::endl;
+            // std::cout << "packet[payloadStart + 1]: " << (unsigned int)packet[payloadStart + 1] << std::endl;
+            // std::cout << "packet[payloadStart + 2]: " << (unsigned int)packet[payloadStart + 2] << std::endl;
 
             if (dataSize == 0)
             {
@@ -268,16 +279,27 @@ namespace wircom
                 return packets;
             }
 
+            int numPackets = 0;
+            if (flag.isLongMessage())
+            {
+                // this a long message, it needs to be split into multiple packets
+                numPackets = ceil((float)slice.size() / MAX_LONG_MSG_PAYLOAD_SIZE);
+            }
+            int packetIndex = 0;
+            int maxPayloadSize = (flag.isLongMessage()) ? MAX_LONG_MSG_PAYLOAD_SIZE : MAX_SHORT_MSG_PAYLOAD_SIZE;
+
+            std::cout << "Number of packets: " << numPackets << std::endl;
+
             while (slice.size() > 0)
             {
-                std::cout << "Data size: " << slice.size() << std::endl;
+                // std::cout << "Data size: " << slice.size() << std::endl;
                 // slice the data
-                int offset = (slice.size() > MAX_PAYLOAD_SIZE) ? MAX_PAYLOAD_SIZE : slice.size();
+                int offset = (slice.size() > maxPayloadSize) ? maxPayloadSize : slice.size();
                 std::cout << "Offset: " << offset << std::endl;
-                std::vector<std::uint8_t> packetData = std::vector<std::uint8_t>(slice.begin(), slice.begin() + MAX_PAYLOAD_SIZE);
-                EncodedMessagePacket packet = this->_buildPacket(packetData);
+                std::vector<std::uint8_t> packetData = std::vector<std::uint8_t>(slice.begin(), slice.begin() + offset);
+                EncodedMessagePacket packet = this->_buildPacket(packetData, packetIndex, numPackets);
 
-                std::cout << "Packet size: " << packet.size() << std::endl;
+                // std::cout << "Packet size: " << packet.size() << std::endl;
                 slice = std::vector<std::uint8_t>(slice.begin() + offset, slice.end());
 
                 packets.push_back(packet);
@@ -287,9 +309,9 @@ namespace wircom
         }
 
     private:
-
-        Message(MessageType type, MessageContentType content, const std::vector<std::uint8_t> &data) : flag(MessageFlag(type, content)), data(data) {
-            if (data.size() > MAX_PAYLOAD_SIZE)
+        Message(MessageType type, MessageContentType content, const std::vector<std::uint8_t> &data) : flag(MessageFlag(type, content)), data(data)
+        {
+            if (data.size() > MAX_SHORT_MSG_PAYLOAD_SIZE)
             {
                 this->flag.markAsLongMessage();
             }
@@ -307,10 +329,16 @@ namespace wircom
             packet.push_back(flag.raw);
 
             // print the flag bits
-            std::cout << "Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
+            // std::cout << "Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
 
             // make sure the packet size is less than MAX_PACKET_SIZE
-            if (data.size() > MAX_PAYLOAD_SIZE)
+            if (data.size() > MAX_SHORT_MSG_PAYLOAD_SIZE && !flag.isLongMessage())
+            {
+                std::cout << "Data size is too large for a single packet" << std::endl;
+                packet.push_back(0);
+                return packet;
+            }
+            else if (data.size() > MAX_LONG_MSG_PAYLOAD_SIZE && flag.isLongMessage())
             {
                 std::cout << "Data size is too large for a single packet" << std::endl;
                 packet.push_back(0);
@@ -319,6 +347,7 @@ namespace wircom
 
             if (packetCount > 0)
             {
+                // std::cout << "Packet number: " << packetNumber << " Packet count: " << packetCount << std::endl;
                 packet.push_back(packetNumber);
                 packet.push_back(packetCount);
             }
@@ -331,7 +360,6 @@ namespace wircom
 
             return packet;
         }
-
     };
 } // namespace wircom
 
