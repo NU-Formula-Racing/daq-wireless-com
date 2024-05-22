@@ -134,7 +134,6 @@ namespace wircom
         {
             std::vector<std::uint8_t> data;
 
-            data.push_back(driveContent.size());
             for (char c : driveContent)
             {
                 data.push_back(c);
@@ -177,7 +176,7 @@ namespace wircom
 
         static MessageParsingResult decode(const EncodedMessagePacket &packet)
         {
-            if (packet.size() < 5)
+            if (packet.size() < SHORT_MSG_HEADER_SIZE)
             {
                 std::cout << "Message Parsing Error: Packet size is too small" << std::endl;
                 return MessageParsingResult(false, MSG_CON_META, std::vector<std::uint8_t>());
@@ -197,12 +196,12 @@ namespace wircom
             flag.raw = packet[3];
             // print the flag bits
             std::cout << "Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
-            int payloadStart = 4;
+            int payloadStart = SHORT_MSG_HEADER_SIZE - 1; // assume short message
 
             if (flag.isLongMessage())
             {
                 std::cout << "Long message detected" << std::endl;
-                payloadStart = 6;
+                payloadStart = LONG_MSG_HEADER_SIZE - 1;
             }
 
             if (packet.size() <= payloadStart)
@@ -211,16 +210,8 @@ namespace wircom
                 return MessageParsingResult(false, MSG_CON_META, std::vector<std::uint8_t>());
             }
 
-            // std::cout << "Payload start: " << payloadStart << std::endl;
             std::uint8_t dataSize = packet[payloadStart];
 
-            // std::cout << "packet[payloadStart - 4] " << (unsigned int)packet[payloadStart - 4] << std::endl;
-            // std::cout << "packet[payloadStart - 3]" << (unsigned int)packet[payloadStart - 3] << std::endl;
-            // std::cout << "packet[payloadStart - 2]" << (unsigned int)packet[payloadStart - 2] << std::endl;
-            // std::cout << "packet[payloadStart - 1] " << (unsigned int)packet[payloadStart - 1] << std::endl;
-            // std::cout << "packet[payloadStart]: " << (unsigned int)packet[payloadStart] << std::endl;
-            // std::cout << "packet[payloadStart + 1]: " << (unsigned int)packet[payloadStart + 1] << std::endl;
-            // std::cout << "packet[payloadStart + 2]: " << (unsigned int)packet[payloadStart + 2] << std::endl;
 
             if (dataSize == 0)
             {
@@ -280,7 +271,7 @@ namespace wircom
                 return packets;
             }
 
-            int numPackets = 0;
+            int numPackets = 1;
             if (flag.isLongMessage())
             {
                 // this a long message, it needs to be split into multiple packets
@@ -296,14 +287,14 @@ namespace wircom
                 // std::cout << "Data size: " << slice.size() << std::endl;
                 // slice the data
                 int offset = (slice.size() > maxPayloadSize) ? maxPayloadSize : slice.size();
-                std::cout << "Offset: " << offset << std::endl;
+                // std::cout << "Offset: " << offset << std::endl;
                 std::vector<std::uint8_t> packetData = std::vector<std::uint8_t>(slice.begin(), slice.begin() + offset);
                 EncodedMessagePacket packet = this->_buildPacket(packetData, packetIndex, numPackets);
 
-                // std::cout << "Packet size: " << packet.size() << std::endl;
                 slice = std::vector<std::uint8_t>(slice.begin() + offset, slice.end());
 
                 packets.push_back(packet);
+                packetIndex++;
             }
 
             return packets;
@@ -318,7 +309,7 @@ namespace wircom
             }
         }
 
-        EncodedMessagePacket _buildPacket(std::vector<std::uint8_t> &data, int packetNumber = 0, int packetCount = 0) const
+        EncodedMessagePacket _buildPacket(const std::vector<std::uint8_t> &data, int packetNumber = 0, int packetCount = 0) const
         {
             EncodedMessagePacket packet;
             for (char c : MSG_IDENTIFIER)
@@ -346,7 +337,7 @@ namespace wircom
                 return packet;
             }
 
-            if (packetCount > 0)
+            if (packetCount > 1)
             {
                 // std::cout << "Packet number: " << packetNumber << " Packet count: " << packetCount << std::endl;
                 packet.push_back(packetNumber);
@@ -354,6 +345,7 @@ namespace wircom
             }
 
             packet.push_back(data.size());
+
             for (std::uint8_t byte : data)
             {
                 packet.push_back(byte);

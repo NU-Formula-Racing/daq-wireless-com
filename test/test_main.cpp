@@ -127,13 +127,13 @@ void test_drive_message(void)
     Message::MessageParsingResult res = Message::decode(packets[0]);
     TEST_ASSERT_TRUE(res.success);
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, res.contentType);
-    TEST_ASSERT_EQUAL(content.size() + 1, res.payload.size());
+    TEST_ASSERT_EQUAL(content.size(), res.payload.size());
 
     // test the data
-    TEST_ASSERT_EQUAL(content.size(), res.payload[0]);
+    TEST_ASSERT_EQUAL(content.size(), res.payload.size());
     for (int i = 0; i < content.size(); i++)
     {
-        TEST_ASSERT_EQUAL(content[i], res.payload[i + 1]);
+        TEST_ASSERT_EQUAL(content[i], res.payload[i]);
     }
 }
 
@@ -158,11 +158,12 @@ void test_drive_message_request(void)
 void test_long_message(void)
 {
     // create a long message
+    // the content will be abc_abc_
     std::string content = "";
 
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 250; i++)
     {
-        content += "a";
+        content += "abc_";
     }
 
     Message msg = Message::createDriveMessageResponse(content);
@@ -191,12 +192,14 @@ void test_long_message(void)
 
         totallyPayloadSize += res.payload.size();
 
+        std::cout << "Validating data integrity of long message packet " << i << std::endl;
         // test the data
         for (int j = 0; j < res.payload.size(); j++)
         {
             // std::cout << "Comparing " << content[i * (MAX_LONG_MSG_PAYLOAD_SIZE) + j] << " with " << res.payload[j] << std::endl;
-            // TEST_ASSERT_EQUAL((std::uint8_t)content[i * (MAX_SHORT_MSG_PAYLOAD_SIZE) + j], res.payload[j]);
+            TEST_ASSERT_EQUAL((std::uint8_t)content[i * (MAX_LONG_MSG_PAYLOAD_SIZE) + j], res.payload[j]);
         }
+        std::cout << std::endl;
     }
 
     TEST_ASSERT_EQUAL(content.size(), totallyPayloadSize);
