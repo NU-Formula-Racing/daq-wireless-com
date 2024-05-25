@@ -79,6 +79,34 @@ namespace wircom
             return *this;
         }
 
+        ComInterface addRXCallback(std::vector<MessageContentType> types, std::function<void(std::vector<std::uint8_t>)> callback)
+        {
+            for (auto &type : types)
+            {
+                this->addRXCallback(type, callback);
+            }
+
+            return *this;
+        }
+
+        ComInterface addRXCallbackToAny(std::function<void(std::vector<std::uint8_t>)> callback)
+        {
+            std::vector<MessageContentType> types = {
+                MessageContentType::MSG_CON_META,
+                MessageContentType::MSG_CON_DRIVE,
+                MessageContentType::MSG_CON_SWITCH_DATA_RATE,
+                MessageContentType::MSG_CON_DATA_TRANSFER,
+            };
+
+            return this->addRXCallback(types, callback);
+        }
+
+        void switchDataRate(int spreadingFactor, int bandwidth)
+        {
+            this->rf95.setSpreadingFactor(spreadingFactor);
+            this->rf95.setSignalBandwidth(bandwidth);
+        }
+
         void listen()
         {
             if (this->_radioState != RADIO_STATE_IDLE)
