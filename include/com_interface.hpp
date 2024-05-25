@@ -190,7 +190,6 @@ namespace wircom
             }
         }
     };
-
 } // namespace wircom
 
 #endif // __COM_INTERFACE_H__
