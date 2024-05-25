@@ -275,7 +275,15 @@ namespace wircom
             if (flag.isLongMessage())
             {
                 // this a long message, it needs to be split into multiple packets
-                numPackets = ceil((float)slice.size() / MAX_LONG_MSG_PAYLOAD_SIZE);
+                float fNumPackets = (float)slice.size() / MAX_LONG_MSG_PAYLOAD_SIZE;
+                if (fNumPackets > (int)fNumPackets)
+                {
+                    numPackets = (int)fNumPackets + 1;
+                }
+                else
+                {
+                    numPackets = (int)fNumPackets;
+                }
             }
             int packetIndex = 0;
             int maxPayloadSize = (flag.isLongMessage()) ? MAX_LONG_MSG_PAYLOAD_SIZE : MAX_SHORT_MSG_PAYLOAD_SIZE;
