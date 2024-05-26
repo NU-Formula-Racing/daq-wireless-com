@@ -15,6 +15,11 @@
 
 namespace wircom
 {
+    // Pin definitions for the LoRa module
+    #define DEFAULT_RFM95_CS 10 // Chip Select pin
+    #define DEFAULT_RFM95_RST 2 // Reset pin
+    #define DEFAULT_RFM95_INT 3 // Interrupt pin
+
     enum RadioState
     {
         RADIO_STATE_IDLE,
@@ -30,7 +35,7 @@ namespace wircom
         RH_RF95 rf95;
         bool ready = false;
 
-        ComInterface() : rf95(this->_csPin, this->_interruptPin) {}
+        ComInterface() : rf95(DEFAULT_RFM95_CS, DEFAULT_RFM95_INT), _csPin(DEFAULT_RFM95_CS), _resetPin(DEFAULT_RFM95_RST), _interruptPin(DEFAULT_RFM95_INT), _frequency(1575.42), _power(23) {}
         ComInterface(int csPin, int resetPin, int interruptPin, float frequency, int power) : rf95(csPin, interruptPin), _csPin(csPin), _resetPin(resetPin), _interruptPin(interruptPin), _frequency(frequency), _power(power) {}
 
         void initialize()
@@ -197,9 +202,8 @@ namespace wircom
                 std::cout << "Collected " << this->_messageBuffer.size() << " packets" << std::endl;
                 std::vector<std::uint8_t> fullMessage;
                 // we need to order the packets by their sequence number
-                std::sort(this->_messageBuffer.begin(), this->_messageBuffer.end(), [](Message::MessageParsingResult a, Message::MessageParsingResult b) {
-                    return a.packetNumber < b.packetNumber;
-                });
+                std::sort(this->_messageBuffer.begin(), this->_messageBuffer.end(), [](Message::MessageParsingResult a, Message::MessageParsingResult b)
+                          { return a.packetNumber < b.packetNumber; });
 
                 for (auto &msg : this->_messageBuffer)
                 {
