@@ -111,7 +111,7 @@ namespace wircom
     class Message
     {
     public:
-        static Message createMetaMessageResponse(std::string &schemaName, int major, int minor, int patch)
+        static Message createMetaMessageResponse(std::string schemaName, int major, int minor, int patch)
         {
             std::vector<std::uint8_t> data;
             data.push_back(schemaName.size());
@@ -130,7 +130,7 @@ namespace wircom
             return Message(MSG_REQUEST, MSG_CON_META, std::vector<std::uint8_t>());
         }
 
-        static Message createDriveMessageResponse(const std::string &driveContent)
+        static Message createDriveMessageResponse(const std::string driveContent)
         {
             std::vector<std::uint8_t> data;
 
