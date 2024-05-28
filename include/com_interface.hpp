@@ -112,15 +112,18 @@ namespace wircom
             this->rf95.setSignalBandwidth(bandwidth);
         }
 
-        void listen()
+        void listen(uint16_t timeout = 1000)
         {
             if (this->_radioState != RADIO_STATE_IDLE)
             {
                 return;
             }
 
-            if (this->rf95.available())
+            // std::cout << "Listening for messages..." << std::endl;
+
+            if (this->rf95.waitAvailableTimeout(timeout))
             {
+                // std::cout << "Available message..." << std::endl;
                 uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
                 uint8_t len = sizeof(buf);
 
@@ -175,6 +178,8 @@ namespace wircom
         {
             if (res.packetCount == 1)
             {
+                std::cout << "Received single packet message of type " << res.contentType << std::endl;
+                std::cout << "Message length: " << res.payload.size() << std::endl;
                 // this is a normal message, we don't need to collect any more packets
                 if (this->_rxMessageCallbacks.find(res.contentType) != this->_rxMessageCallbacks.end())
                 {
@@ -192,6 +197,8 @@ namespace wircom
             {
                 this->_expectedPackets = res.packetCount;
             }
+
+            std::cout << "Received packet " << res.packetNumber << " of " << res.packetCount << " for message type " << res.contentType << std::endl;
 
             this->_messageBuffer.push_back(res);
 

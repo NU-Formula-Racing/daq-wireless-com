@@ -170,7 +170,7 @@ namespace wircom
             MessageContentType contentType;
             std::vector<std::uint8_t> payload;
 
-            MessageParsingResult(bool success, MessageContentType contentType, std::vector<std::uint8_t> data) : success(success), contentType(contentType), payload(data), packetNumber(0), packetCount(0) {}
+            MessageParsingResult(bool success, MessageContentType contentType, std::vector<std::uint8_t> data) : success(success), contentType(contentType), payload(data), packetNumber(1), packetCount(1) {}
             MessageParsingResult(bool success, int packetNumber, int packetCount, MessageContentType contentType, std::vector<std::uint8_t> data) : success(success), packetNumber(packetNumber), packetCount(packetCount), contentType(contentType), payload(data) {}
         };
 
@@ -195,7 +195,9 @@ namespace wircom
             MessageFlag flag;
             flag.raw = packet[3];
             // print the flag bits
-            std::cout << "Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
+            // std::cout << "Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
+            // std::cout << "Message Type: " << flag.getMessageType() << std::endl;
+            // std::cout << "Content Type: " << flag.getMessageContentType() << std::endl;
             int payloadStart = SHORT_MSG_HEADER_SIZE - 1; // assume short message
 
             if (flag.isLongMessage())
@@ -216,6 +218,7 @@ namespace wircom
             if (dataSize == 0)
             {
                 // this has no payload
+                std::cout << "Message Parsing: No payload" << std::endl;
                 return MessageParsingResult(true, flag.getMessageContentType(), std::vector<std::uint8_t>());
             }
 
@@ -234,10 +237,10 @@ namespace wircom
 
             if (flag.isLongMessage())
             {
-                return MessageParsingResult(true, packet[payloadStart + 1], packet[payloadStart + 2], MessageContentType((flag.raw >> 2) & 0x1), payload);
+                return MessageParsingResult(true, packet[payloadStart + 1], packet[payloadStart + 2], flag.getMessageContentType(), payload);
             }
 
-            return MessageParsingResult(true, MessageContentType((flag.raw >> 2) & 0x1), payload);
+            return MessageParsingResult(true, flag.getMessageContentType(), payload);
         }
 
         static MessageParsingResult decode(const std::vector<EncodedMessagePacket> &packets)
@@ -288,7 +291,7 @@ namespace wircom
             int packetIndex = 0;
             int maxPayloadSize = (flag.isLongMessage()) ? MAX_LONG_MSG_PAYLOAD_SIZE : MAX_SHORT_MSG_PAYLOAD_SIZE;
 
-            std::cout << "Number of packets: " << numPackets << std::endl;
+            // std::cout << "Number of packets: " << numPackets << std::endl;
 
             while (slice.size() > 0)
             {
