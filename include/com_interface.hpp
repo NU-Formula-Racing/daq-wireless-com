@@ -133,7 +133,7 @@ namespace wircom
                 if (this->rf95.recv(buf, &len))
                 {
                     std::vector<std::uint8_t> data(buf, buf + len);
-                    Message::MessageParsingResult res = Message::decode(data);
+                    MessageParsingResult res = Message::decode(data);
                     if (!res.success)
                     {
                         return;
@@ -168,7 +168,7 @@ namespace wircom
         }
 
     private:
-        std::unordered_map<std::uint16_t, std::vector<Message::MessageParsingResult>> _messageBuffer; // map of message IDs to message packets
+        std::unordered_map<std::uint16_t, std::vector<MessageParsingResult>> _messageBuffer; // map of message IDs to message packets
         std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> _rxMessageCallbacks;
         RadioState _radioState = RADIO_STATE_IDLE;
 
@@ -180,7 +180,7 @@ namespace wircom
         const float _frequency = 1575.42;
         const int _power = 23;
 
-        void _handleRXMessage(Message::MessageParsingResult res)
+        void _handleRXMessage(MessageParsingResult res)
         {
             if (res.packetCount == 1)
             {
@@ -206,7 +206,7 @@ namespace wircom
 
             if (this->_messageBuffer.find(res.messageID) == this->_messageBuffer.end())
             {
-                this->_messageBuffer[res.messageID] = std::vector<Message::MessageParsingResult>();
+                this->_messageBuffer[res.messageID] = std::vector<MessageParsingResult>();
             }
 
             this->_messageBuffer[res.messageID].push_back(res);
@@ -214,12 +214,12 @@ namespace wircom
             // check if we have all the packets
             if (this->_messageBuffer[res.messageID].size() == this->_messageBuffer[res.messageID][0].packetCount)
             {
-                std::vector<Message::MessageParsingResult> packets = this->_messageBuffer[res.messageID];
+                std::vector<MessageParsingResult> packets = this->_messageBuffer[res.messageID];
                 std::cout << "Received all packets for message type " << res.contentType << std::endl;
                 std::cout << "Collected " << packets.size() << " packets" << std::endl;
                 std::vector<std::uint8_t> fullMessage;
                 // we need to order the packets by their sequence number
-                std::sort(packets.begin(), packets.end(), [](Message::MessageParsingResult a, Message::MessageParsingResult b)
+                std::sort(packets.begin(), packets.end(), [](MessageParsingResult a, MessageParsingResult b)
                           { return a.packetNumber < b.packetNumber; });
 
                 for (auto &msg : packets)

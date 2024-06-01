@@ -105,7 +105,23 @@ namespace wircom
         }
     };
 
-    typedef std::vector<std::uint8_t> EncodedMessagePacket;
+    struct MessageParsingResult
+    {
+        bool success;
+        int packetNumber;
+        int packetCount;
+        std::uint16_t messageID;
+        MessageContentType contentType;
+        std::vector<std::uint8_t> payload;
+
+        static MessageParsingResult error()
+        {
+            return MessageParsingResult(false, 0, MSG_CON_META, std::vector<std::uint8_t>());
+        }
+
+        MessageParsingResult(bool success, std::uint16_t id, MessageContentType contentType, std::vector<std::uint8_t> data) : success(success), messageID(id), contentType(contentType), payload(data), packetNumber(1), packetCount(1) {}
+        MessageParsingResult(bool success, std::uint16_t id, int packetNumber, int packetCount, MessageContentType contentType, std::vector<std::uint8_t> data) : success(success), messageID(id), packetNumber(packetNumber), packetCount(packetCount), contentType(contentType), payload(data) {}
+    };
 
     std::uint16_t messageIDCounter = 0;
 
@@ -167,27 +183,7 @@ namespace wircom
             return Message(MSG_RESPONSE, MSG_CON_SWITCH_DATA_RATE, data);
         }
 
-        struct MessageParsingResult
-        {
-            bool success;
-            int packetNumber;
-            int packetCount;
-            std::uint16_t messageID;
-            MessageContentType contentType;
-            std::vector<std::uint8_t> payload;
-
-            static MessageParsingResult error()
-            {
-                return MessageParsingResult(false, 0, MSG_CON_META, std::vector<std::uint8_t>());
-            }
-
-            MessageParsingResult(bool success, std::uint16_t id, MessageContentType contentType, std::vector<std::uint8_t> data) : 
-                success(success), messageID(id),contentType(contentType), payload(data), packetNumber(1), packetCount(1) {}
-            MessageParsingResult(bool success, std::uint16_t id, int packetNumber, int packetCount, MessageContentType contentType, std::vector<std::uint8_t> data) : 
-                success(success), messageID(id), packetNumber(packetNumber), packetCount(packetCount), contentType(contentType), payload(data) {}
-        };
-
-        static MessageParsingResult decode(const EncodedMessagePacket &packet)
+        static MessageParsingResult decode(const std::vector<std::uint8_t> &packet)
         {
             if (packet.size() < SHORT_MSG_HEADER_SIZE)
             {
@@ -230,7 +226,6 @@ namespace wircom
 
             std::uint8_t dataSize = packet[payloadStart];
 
-
             if (dataSize == 0)
             {
                 // this has no payload
@@ -259,10 +254,10 @@ namespace wircom
             return MessageParsingResult(true, messageID, flag.getMessageContentType(), payload);
         }
 
-        static MessageParsingResult decode(const std::vector<EncodedMessagePacket> &packets)
+        static MessageParsingResult decode(const std::vector<std::vector<std::uint8_t>> &packets)
         {
             std::vector<std::uint8_t> payload;
-            for (const EncodedMessagePacket &packet : packets)
+            for (const std::vector<std::uint8_t> &packet : packets)
             {
                 for (std::uint8_t byte : packet)
                 {
@@ -288,16 +283,16 @@ namespace wircom
             }
         }
 
-        std::vector<EncodedMessagePacket> encode() const
+        std::vector<std::vector<std::uint8_t>> encode() const
         {
             // split the data into packets
-            std::vector<EncodedMessagePacket> packets;
+            std::vector<std::vector<std::uint8_t>> packets;
             std::vector<std::uint8_t> slice = data;
 
             if (slice.size() == 0)
             {
                 // no data to send
-                EncodedMessagePacket packet = this->_buildPacket(slice);
+                std::vector<std::uint8_t> packet = this->_buildPacket(slice);
                 packets.push_back(packet);
                 return packets;
             }
@@ -328,7 +323,7 @@ namespace wircom
                 int offset = (slice.size() > maxPayloadSize) ? maxPayloadSize : slice.size();
                 // std::cout << "Offset: " << offset << std::endl;
                 std::vector<std::uint8_t> packetData = std::vector<std::uint8_t>(slice.begin(), slice.begin() + offset);
-                EncodedMessagePacket packet = this->_buildPacket(packetData, packetIndex, numPackets);
+                std::vector<std::uint8_t> packet = this->_buildPacket(packetData, packetIndex, numPackets);
 
                 slice = std::vector<std::uint8_t>(slice.begin() + offset, slice.end());
 
@@ -350,9 +345,9 @@ namespace wircom
             messageID = Message::_getNextMessageID();
         }
 
-        EncodedMessagePacket _buildPacket(const std::vector<std::uint8_t> &data, int packetNumber = 0, int packetCount = 0) const
+        std::vector<std::uint8_t> _buildPacket(const std::vector<std::uint8_t> &data, int packetNumber = 0, int packetCount = 0) const
         {
-            EncodedMessagePacket packet;
+            std::vector<std::uint8_t> packet;
             for (char c : MSG_IDENTIFIER)
             {
                 if (c != '\0')
@@ -401,7 +396,6 @@ namespace wircom
 
         static std::uint16_t _getNextMessageID()
         {
-            std::cout << "Message ID: " << messageIDCounter << std::endl;
             return messageIDCounter++;
         }
     };

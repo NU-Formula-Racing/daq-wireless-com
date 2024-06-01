@@ -61,7 +61,7 @@ void test_meta_message()
     TEST_ASSERT_EQUAL(1, msg.data[7]);
 
     // test encoding
-    std::vector<EncodedMessagePacket> packets = msg.encode();
+    std::vector<std::vector<std::uint8_t>> packets = msg.encode();
     // test the decoding
     // should be 1 packet, since the data is small
     TEST_ASSERT_EQUAL(1, packets.size());
@@ -69,7 +69,7 @@ void test_meta_message()
     std::cout << "Encoded metadata" << std::endl;
 
     // test the decoding
-    Message::MessageParsingResult res = Message::decode(packets[0]);
+    MessageParsingResult res = Message::decode(packets[0]);
 
     std::cout << "Decoded metadata, testing the result" << std::endl;
 
@@ -99,12 +99,12 @@ void test_meta_message_request()
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_META, msg.flag.getMessageContentType());
 
     // test the encoding
-    std::vector<EncodedMessagePacket> packets = msg.encode();
+    std::vector<std::vector<std::uint8_t>> packets = msg.encode();
     // should be 1 packet, since the data is small
     TEST_ASSERT_EQUAL(1, packets.size());
 
     // test the decoding
-    Message::MessageParsingResult res = Message::decode(packets[0]);
+    MessageParsingResult res = Message::decode(packets[0]);
     TEST_ASSERT_TRUE(res.success);
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_META, res.contentType);
     TEST_ASSERT_EQUAL(0, res.payload.size());
@@ -119,12 +119,12 @@ void test_drive_message(void)
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, msg.flag.getMessageContentType());
 
     // test the encoding
-    std::vector<EncodedMessagePacket> packets = msg.encode();
+    std::vector<std::vector<std::uint8_t>> packets = msg.encode();
     // should be 1 packet, since the data is small
     TEST_ASSERT_EQUAL(1, packets.size());
 
     // test the decoding
-    Message::MessageParsingResult res = Message::decode(packets[0]);
+    MessageParsingResult res = Message::decode(packets[0]);
     TEST_ASSERT_TRUE(res.success);
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, res.contentType);
     TEST_ASSERT_EQUAL(content.size(), res.payload.size());
@@ -144,12 +144,12 @@ void test_drive_message_request(void)
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, msg.flag.getMessageContentType());
 
     // test the encoding
-    std::vector<EncodedMessagePacket> packets = msg.encode();
+    std::vector<std::vector<std::uint8_t>> packets = msg.encode();
     // should be 1 packet, since the data is small
     TEST_ASSERT_EQUAL(1, packets.size());
 
     // test the decoding
-    Message::MessageParsingResult res = Message::decode(packets[0]);
+    MessageParsingResult res = Message::decode(packets[0]);
     TEST_ASSERT_TRUE(res.success);
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, res.contentType);
     TEST_ASSERT_EQUAL(0, res.payload.size());
@@ -169,7 +169,7 @@ void test_long_message(void)
     Message msg = Message::createDriveMessageResponse(content);
 
     // test the encoding
-    std::vector<EncodedMessagePacket> packets = msg.encode();
+    std::vector<std::vector<std::uint8_t>> packets = msg.encode();
     // this should not be 1 packet, since the data is large
     TEST_ASSERT_TRUE(packets.size() > 1);
 
@@ -177,7 +177,7 @@ void test_long_message(void)
     // test the decoding
     for (int i = 0; i < packets.size(); i++)
     {
-        Message::MessageParsingResult res = Message::decode(packets[i]);
+        MessageParsingResult res = Message::decode(packets[i]);
         TEST_ASSERT_TRUE(res.success);
         TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, res.contentType);
 
