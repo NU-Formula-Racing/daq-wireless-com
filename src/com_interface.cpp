@@ -37,29 +37,32 @@ void ComInterface::initialize()
     this->rf95.setTxPower(this->_power, false);
 }
 
-ComInterface ComInterface::addRXCallback(MessageContentType type, std::function<void(std::vector<std::uint8_t>)> callback)
+ComInterface ComInterface::addRXCallback(MessageType messageType, MessageContentType contentType, std::function<void(std::vector<std::uint8_t>)> callback)
 {
-    if (this->_rxMessageCallbacks.find(type) == this->_rxMessageCallbacks.end())
+    std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> callbacks = 
+        (messageType == MessageType::MSG_REQUEST) ? this->_requestMessageCallbacks : this->_responseMessageCallbacks;
+        
+    if (callbacks.find(contentType) == callbacks.end())
     {
-        this->_rxMessageCallbacks[type] = std::vector<std::function<void(std::vector<std::uint8_t>)>>();
+        callbacks[contentType] = std::vector<std::function<void(std::vector<std::uint8_t>)>>();
     }
 
-    this->_rxMessageCallbacks[type].push_back(callback);
+    callbacks[contentType].push_back(callback);
 
     return *this;
 }
 
-ComInterface ComInterface::addRXCallback(std::vector<MessageContentType> types, std::function<void(std::vector<std::uint8_t>)> callback)
+ComInterface ComInterface::addRXCallback(MessageType messageType, std::vector<MessageContentType> contentTypes, std::function<void(std::vector<std::uint8_t>)> callback)
 {
-    for (MessageContentType type : types)
+    for (MessageContentType type : contentTypes)
     {
-        this->addRXCallback(type, callback);
+        this->addRXCallback(messageType, type, callback);
     }
 
     return *this;
 }
 
-ComInterface ComInterface::addRXCallbackToAny(std::function<void(std::vector<std::uint8_t>)> callback)
+ComInterface ComInterface::addRXCallbackToAny(MessageType messageType, std::function<void(std::vector<std::uint8_t>)> callback)
 {
     std::vector<MessageContentType> types = {
         MessageContentType::MSG_CON_META,
@@ -68,7 +71,7 @@ ComInterface ComInterface::addRXCallbackToAny(std::function<void(std::vector<std
         MessageContentType::MSG_CON_DATA_TRANSFER,
     };
 
-    return this->addRXCallback(types, callback);
+    return this->addRXCallback(messageType, types, callback);
 }
 
 void ComInterface::switchDataRate(int spreadingFactor, int bandwidth)
@@ -135,9 +138,12 @@ void ComInterface::_handleRXMessage(MessageParsingResult res)
         std::cout << "Received single packet message of type " << res.contentType << std::endl;
         std::cout << "Message length: " << res.payload.size() << std::endl;
         // this is a normal message, we don't need to collect any more packets
-        if (this->_rxMessageCallbacks.find(res.contentType) != this->_rxMessageCallbacks.end())
+        std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> callbacks = 
+            (res.messageType == MessageType::MSG_REQUEST) ? this->_requestMessageCallbacks : this->_responseMessageCallbacks;
+
+        if (callbacks.find(res.contentType) != callbacks.end())
         {
-            for (auto &callback : this->_rxMessageCallbacks[res.contentType])
+            for (auto &callback : callbacks[res.contentType])
             {
                 callback(res.payload);
             }
@@ -175,9 +181,12 @@ void ComInterface::_handleRXMessage(MessageParsingResult res)
             fullMessage.insert(fullMessage.end(), msg.payload.begin(), msg.payload.end());
         }
 
-        if (this->_rxMessageCallbacks.find(res.contentType) != this->_rxMessageCallbacks.end())
+        std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> callbacks = 
+            (res.messageType == MessageType::MSG_REQUEST) ? this->_requestMessageCallbacks : this->_responseMessageCallbacks;
+
+        if (callbacks.find(res.contentType) != callbacks.end())
         {
-            for (auto &callback : this->_rxMessageCallbacks[res.contentType])
+            for (auto &callback : callbacks[res.contentType])
             {
                 callback(fullMessage);
             }

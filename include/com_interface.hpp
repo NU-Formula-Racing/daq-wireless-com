@@ -47,9 +47,9 @@ namespace wircom
         /// @param type The message type to add the callback for.
         /// @param callback The callback function to add.
         /// @return this, allowing for chaining of function calls.
-        ComInterface addRXCallback(MessageContentType type, std::function<void(std::vector<std::uint8_t>)> callback);
-        ComInterface addRXCallback(std::vector<MessageContentType> types, std::function<void(std::vector<std::uint8_t>)> callback);
-        ComInterface addRXCallbackToAny(std::function<void(std::vector<std::uint8_t>)> callback);
+        ComInterface addRXCallback(MessageType messageType, MessageContentType contentType, std::function<void(std::vector<std::uint8_t>)> callback);
+        ComInterface addRXCallback(MessageType messageType, std::vector<MessageContentType> contentTypes, std::function<void(std::vector<std::uint8_t>)> callback);
+        ComInterface addRXCallbackToAny(MessageType messageType, std::function<void(std::vector<std::uint8_t>)> callback);
 
         void switchDataRate(int spreadingFactor, int bandwidth);
 
@@ -58,7 +58,8 @@ namespace wircom
 
     private:
         std::unordered_map<std::uint16_t, std::vector<MessageParsingResult>> _messageBuffer; // map of message IDs to message packets
-        std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> _rxMessageCallbacks;
+        std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> _responseMessageCallbacks;
+        std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> _requestMessageCallbacks;
         RadioState _radioState = RADIO_STATE_IDLE;
 
         std::vector<std::tuple<MessageContentType, Message>> _acksRequired;

@@ -111,16 +111,19 @@ namespace wircom
         int packetNumber;
         int packetCount;
         std::uint16_t messageID;
+        MessageType messageType;
         MessageContentType contentType;
         std::vector<std::uint8_t> payload;
 
         static MessageParsingResult error()
         {
-            return MessageParsingResult(false, 0, MSG_CON_META, std::vector<std::uint8_t>());
+            return MessageParsingResult(false, 0, MSG_ERROR, MSG_CON_META, std::vector<std::uint8_t>());
         }
 
-        MessageParsingResult(bool success, std::uint16_t id, MessageContentType contentType, std::vector<std::uint8_t> data) : success(success), messageID(id), contentType(contentType), payload(data), packetNumber(1), packetCount(1) {}
-        MessageParsingResult(bool success, std::uint16_t id, int packetNumber, int packetCount, MessageContentType contentType, std::vector<std::uint8_t> data) : success(success), messageID(id), packetNumber(packetNumber), packetCount(packetCount), contentType(contentType), payload(data) {}
+        MessageParsingResult(bool success, std::uint16_t id, MessageType messageType, MessageContentType contentType, std::vector<std::uint8_t> data) 
+            : success(success), messageID(id), messageType(messageType), contentType(contentType), payload(data), packetNumber(1), packetCount(1) {}
+        MessageParsingResult(bool success, std::uint16_t id, int packetNumber, int packetCount, MessageType messageType, MessageContentType contentType, std::vector<std::uint8_t> data) 
+            : success(success), messageID(id), packetNumber(packetNumber), packetCount(packetCount), messageType(messageType), contentType(contentType), payload(data) {}
     };
 
     class Message
