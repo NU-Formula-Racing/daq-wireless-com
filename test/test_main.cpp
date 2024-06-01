@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "message.hpp"
+#include "builder.hpp"
 
 using namespace wircom;
 
@@ -42,7 +43,7 @@ void test_message_flag()
 void test_meta_message()
 {
     std::string schemaName = "Test";
-    Message msg = Message::createMetaMessageResponse(schemaName, 1, 0, 1);
+    Message msg = MessageBuilder::createMetaMessageResponse(schemaName, 1, 0, 1);
     TEST_ASSERT_EQUAL(MessageType::MSG_RESPONSE, msg.flag.getMessageType());
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_META, msg.flag.getMessageContentType());
 
@@ -90,11 +91,21 @@ void test_meta_message()
     TEST_ASSERT_EQUAL(1, res.payload[5]);
     TEST_ASSERT_EQUAL(0, res.payload[6]);
     TEST_ASSERT_EQUAL(1, res.payload[7]);
+
+    ContentResult<MetaContent> metaContent = MessageParser::parseMetaContent(res.payload);
+    TEST_ASSERT_TRUE(metaContent.success);
+    for (int i = 0; i < schemaName.size(); i++)
+    {
+        TEST_ASSERT_EQUAL(schemaName[i], metaContent.content.schemaName[i]);
+    }
+    TEST_ASSERT_EQUAL(1, metaContent.content.major);
+    TEST_ASSERT_EQUAL(0, metaContent.content.minor);
+    TEST_ASSERT_EQUAL(1, metaContent.content.patch);
 }
 
 void test_meta_message_request()
 {
-    Message msg = Message::createMetaMessageRequest();
+    Message msg = MessageBuilder::createMetaMessageRequest();
     TEST_ASSERT_EQUAL(MessageType::MSG_REQUEST, msg.flag.getMessageType());
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_META, msg.flag.getMessageContentType());
 
@@ -114,7 +125,7 @@ void test_drive_message(void)
 {
     std::string content = "meta { .schema : 'test_schema'; .version : 1.0.0; } def TestStruct { float testVal; } def ToSend { TestStruct test; } frame(ToSend)";
 
-    Message msg = Message::createDriveMessageResponse(content);
+    Message msg = MessageBuilder::createDriveMessageResponse(content);
     TEST_ASSERT_EQUAL(MessageType::MSG_RESPONSE, msg.flag.getMessageType());
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, msg.flag.getMessageContentType());
 
@@ -135,11 +146,18 @@ void test_drive_message(void)
     {
         TEST_ASSERT_EQUAL(content[i], res.payload[i]);
     }
+
+    ContentResult<DriveContent> driveContent = MessageParser::parseDriveContent(res.payload);
+    TEST_ASSERT_TRUE(driveContent.success);
+    for (int i = 0; i < content.size(); i++)
+    {
+        TEST_ASSERT_EQUAL(content[i], driveContent.content.driveContent[i]);
+    }
 }
 
 void test_drive_message_request(void)
 {
-    Message msg = Message::createDriveMessageRequest();
+    Message msg = MessageBuilder::createDriveMessageRequest();
     TEST_ASSERT_EQUAL(MessageType::MSG_REQUEST, msg.flag.getMessageType());
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, msg.flag.getMessageContentType());
 
@@ -166,7 +184,7 @@ void test_long_message(void)
         content += "abc_";
     }
 
-    Message msg = Message::createDriveMessageResponse(content);
+    Message msg = MessageBuilder::createDriveMessageResponse(content);
 
     // test the encoding
     std::vector<std::vector<std::uint8_t>> packets = msg.encode();
@@ -204,7 +222,6 @@ void test_long_message(void)
 
     TEST_ASSERT_EQUAL(content.size(), totallyPayloadSize);
 }
-
 
 
 int main(int argc, char **argv)

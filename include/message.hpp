@@ -129,58 +129,15 @@ namespace wircom
         MessageFlag flag;
         std::vector<std::uint8_t> data;
         std::uint16_t messageID;
-
         inline static std::uint16_t messageIDCounter;
 
-        static Message createMetaMessageResponse(std::string schemaName, int major, int minor, int patch)
+        Message(MessageType type, MessageContentType content, const std::vector<std::uint8_t> &data) : flag(MessageFlag(type, content)), data(data)
         {
-            std::vector<std::uint8_t> data;
-            data.push_back(schemaName.size());
-            for (char c : schemaName)
+            if (data.size() > MAX_SHORT_MSG_PAYLOAD_SIZE)
             {
-                data.push_back(c);
+                this->flag.markAsLongMessage();
             }
-            data.push_back(major);
-            data.push_back(minor);
-            data.push_back(patch);
-            return Message(MSG_RESPONSE, MSG_CON_META, data);
-        }
-
-        static Message createMetaMessageRequest()
-        {
-            return Message(MSG_REQUEST, MSG_CON_META, std::vector<std::uint8_t>());
-        }
-
-        static Message createDriveMessageResponse(const std::string driveContent)
-        {
-            std::vector<std::uint8_t> data;
-
-            for (char c : driveContent)
-            {
-                data.push_back(c);
-            }
-
-            return Message(MSG_RESPONSE, MSG_CON_DRIVE, data);
-        }
-
-        static Message createDriveMessageRequest()
-        {
-            return Message(MSG_REQUEST, MSG_CON_DRIVE, std::vector<std::uint8_t>());
-        }
-
-        static Message createSwitchDataRateMessageRequest(int bandwidth, int frequency)
-        {
-            std::vector<std::uint8_t> payload;
-            payload.push_back(bandwidth);
-            payload.push_back(frequency);
-            return Message(MSG_REQUEST, MSG_CON_SWITCH_DATA_RATE, payload);
-        }
-
-        static Message createSwitchDataRateMessageResponse(bool okay)
-        {
-            std::vector<std::uint8_t> data;
-            data.push_back(okay);
-            return Message(MSG_RESPONSE, MSG_CON_SWITCH_DATA_RATE, data);
+            messageID = Message::_getNextMessageID();
         }
 
         static MessageParsingResult decode(const std::vector<std::uint8_t> &packet);
@@ -188,18 +145,7 @@ namespace wircom
         std::vector<std::vector<std::uint8_t>> encode() const;
         bool operator==(const Message &other) const;
 
-
     private:
-        Message(MessageType type, MessageContentType content, const std::vector<std::uint8_t> &data) : flag(MessageFlag(type, content)), data(data)
-        {
-            if (data.size() > MAX_SHORT_MSG_PAYLOAD_SIZE)
-            {
-                this->flag.markAsLongMessage();
-            }
-
-            messageID = Message::_getNextMessageID();
-        }
-
         std::vector<std::uint8_t> _buildPacket(const std::vector<std::uint8_t> &data, int packetNumber = 0, int packetCount = 0) const;
         static std::uint16_t _getNextMessageID()
         {
