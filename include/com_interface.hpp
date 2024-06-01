@@ -19,6 +19,7 @@ namespace wircom
     #define DEFAULT_RFM95_CS 10 // Chip Select pin
     #define DEFAULT_RFM95_RST 2 // Reset pin
     #define DEFAULT_RFM95_INT 3 // Interrupt pin
+    #define SEND_TIMEOUT 1000
 
     enum RadioState
     {
@@ -157,13 +158,19 @@ namespace wircom
                 this->rf95.waitPacketSent();
             }
 
+            // add the message to the list of messages that require an ack, if the message type requires one
+            this->_acksRequired.push_back(std::make_tuple(msg.flag.getMessageContentType(), msg));
+
+
             this->_radioState = RADIO_STATE_IDLE;
         }
 
     private:
-        std::vector<Message::MessageParsingResult> _messageBuffer;
+        std::unordered_map<std::uint16_t, std::vector<Message::MessageParsingResult>> _messageBuffer; // map of message IDs to message packets
         std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> _rxMessageCallbacks;
         RadioState _radioState = RADIO_STATE_IDLE;
+
+        std::vector<std::tuple<MessageContentType, Message>> _acksRequired;
 
         int _expectedPackets = 0;
         int _receivedPackets = 0;

@@ -10,14 +10,13 @@
 #define MSG_IDENTIFIER "NFR"
 #define BIT_FLAG(x) (1 << x)
 #define MAX_PACKET_SIZE 256 // in bytes
-#define SHORT_MSG_HEADER_SIZE 5
-#define LONG_MSG_HEADER_SIZE 7 // for long messages
+#define SHORT_MSG_HEADER_SIZE 7
+#define LONG_MSG_HEADER_SIZE 9 // for long messages
 #define MAX_SHORT_MSG_PAYLOAD_SIZE (MAX_PACKET_SIZE - SHORT_MSG_HEADER_SIZE)
 #define MAX_LONG_MSG_PAYLOAD_SIZE (MAX_PACKET_SIZE - LONG_MSG_HEADER_SIZE)
 
 namespace wircom
 {
-
     enum MessageType
     {
         MSG_REQUEST = 0,  // request message
@@ -111,6 +110,10 @@ namespace wircom
     class Message
     {
     public:
+        MessageFlag flag;
+        std::vector<std::uint8_t> data;
+        std::uint16_t messageID;
+
         static Message createMetaMessageResponse(std::string schemaName, int major, int minor, int patch)
         {
             std::vector<std::uint8_t> data;
@@ -167,11 +170,19 @@ namespace wircom
             bool success;
             int packetNumber;
             int packetCount;
+            std::uint16_t messageID;
             MessageContentType contentType;
             std::vector<std::uint8_t> payload;
 
-            MessageParsingResult(bool success, MessageContentType contentType, std::vector<std::uint8_t> data) : success(success), contentType(contentType), payload(data), packetNumber(1), packetCount(1) {}
-            MessageParsingResult(bool success, int packetNumber, int packetCount, MessageContentType contentType, std::vector<std::uint8_t> data) : success(success), packetNumber(packetNumber), packetCount(packetCount), contentType(contentType), payload(data) {}
+            static MessageParsingResult error()
+            {
+                return MessageParsingResult(false, 0, MSG_CON_META, std::vector<std::uint8_t>());
+            }
+
+            MessageParsingResult(bool success, std::uint16_t id, MessageContentType contentType, std::vector<std::uint8_t> data) : 
+                success(success), messageID(id),contentType(contentType), payload(data), packetNumber(1), packetCount(1) {}
+            MessageParsingResult(bool success, std::uint16_t id, int packetNumber, int packetCount, MessageContentType contentType, std::vector<std::uint8_t> data) : 
+                success(success), messageID(id), packetNumber(packetNumber), packetCount(packetCount), contentType(contentType), payload(data) {}
         };
 
         static MessageParsingResult decode(const EncodedMessagePacket &packet)
@@ -179,7 +190,7 @@ namespace wircom
             if (packet.size() < SHORT_MSG_HEADER_SIZE)
             {
                 std::cout << "Message Parsing Error: Packet size is too small" << std::endl;
-                return MessageParsingResult(false, MSG_CON_META, std::vector<std::uint8_t>());
+                return MessageParsingResult::error();
             }
 
             // check if the packet is a message packet
@@ -188,12 +199,15 @@ namespace wircom
                 if (packet[i] != MSG_IDENTIFIER[i])
                 {
                     std::cout << "Message Parsing Error: Invalid message identifier" << std::endl;
-                    return MessageParsingResult(false, MSG_CON_META, std::vector<std::uint8_t>());
+                    return MessageParsingResult::error();
                 }
             }
 
             MessageFlag flag;
-            flag.raw = packet[3];
+
+            std::uint16_t messageID = (packet[3] << 8) | packet[4];
+
+            flag.raw = packet[5];
             // print the flag bits
             // std::cout << "Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
             // std::cout << "Message Type: " << flag.getMessageType() << std::endl;
@@ -209,7 +223,7 @@ namespace wircom
             if (packet.size() <= payloadStart)
             {
                 std::cout << "Message Parsing Error: Packet size is too small" << std::endl;
-                return MessageParsingResult(false, MSG_CON_META, std::vector<std::uint8_t>());
+                return MessageParsingResult::error();
             }
 
             std::uint8_t dataSize = packet[payloadStart];
@@ -219,7 +233,7 @@ namespace wircom
             {
                 // this has no payload
                 std::cout << "Message Parsing: No payload" << std::endl;
-                return MessageParsingResult(true, flag.getMessageContentType(), std::vector<std::uint8_t>());
+                return MessageParsingResult(true, messageID, flag.getMessageContentType(), std::vector<std::uint8_t>());
             }
 
             std::vector<std::uint8_t> payload;
@@ -232,15 +246,15 @@ namespace wircom
             {
                 std::cout << "Message Parsing Error: Data size does not match the packet size" << std::endl;
                 std::cout << "Data size: " << payload.size() << " Expected size: " << (unsigned int)dataSize << std::endl;
-                return MessageParsingResult(false, MSG_CON_META, std::vector<std::uint8_t>());
+                return MessageParsingResult::error();
             }
 
             if (flag.isLongMessage())
             {
-                return MessageParsingResult(true, packet[payloadStart + 1], packet[payloadStart + 2], flag.getMessageContentType(), payload);
+                return MessageParsingResult(true, messageID, packet[payloadStart + 1], packet[payloadStart + 2], flag.getMessageContentType(), payload);
             }
 
-            return MessageParsingResult(true, flag.getMessageContentType(), payload);
+            return MessageParsingResult(true, messageID, flag.getMessageContentType(), payload);
         }
 
         static MessageParsingResult decode(const std::vector<EncodedMessagePacket> &packets)
@@ -257,8 +271,20 @@ namespace wircom
             return decode(payload);
         }
 
-        MessageFlag flag;
-        std::vector<std::uint8_t> data;
+        bool operator==(const Message &other) const
+        {
+            if (flag == other.flag && data.size() == other.data.size() && messageID == other.messageID)
+            {
+                for (int i = 0; i < data.size(); i++)
+                {
+                    if (data[i] != other.data[i])
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
 
         std::vector<EncodedMessagePacket> encode() const
         {
@@ -318,6 +344,8 @@ namespace wircom
             {
                 this->flag.markAsLongMessage();
             }
+
+            messageID = Message::_getNextMessageID();
         }
 
         EncodedMessagePacket _buildPacket(const std::vector<std::uint8_t> &data, int packetNumber = 0, int packetCount = 0) const
@@ -328,6 +356,10 @@ namespace wircom
                 if (c != '\0')
                     packet.push_back(c);
             }
+
+            // add the message ID
+            packet.push_back((messageID >> 8) & 0xFF);
+            packet.push_back(messageID & 0xFF);
 
             packet.push_back(flag.raw);
 
@@ -363,6 +395,12 @@ namespace wircom
             }
 
             return packet;
+        }
+
+        static volatile std::uint16_t _messageIDCounter;
+        static std::uint16_t _getNextMessageID()
+        {
+            return _messageIDCounter++;
         }
     };
 } // namespace wircom
