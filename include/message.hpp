@@ -107,6 +107,8 @@ namespace wircom
 
     typedef std::vector<std::uint8_t> EncodedMessagePacket;
 
+    std::uint16_t messageIDCounter = 0;
+
     class Message
     {
     public:
@@ -397,10 +399,10 @@ namespace wircom
             return packet;
         }
 
-        static volatile std::uint16_t _messageIDCounter;
         static std::uint16_t _getNextMessageID()
         {
-            return _messageIDCounter++;
+            std::cout << "Message ID: " << messageIDCounter << std::endl;
+            return messageIDCounter++;
         }
     };
 } // namespace wircom

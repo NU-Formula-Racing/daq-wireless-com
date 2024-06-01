@@ -36,8 +36,10 @@ namespace wircom
         RH_RF95 rf95;
         bool ready = false;
 
-        ComInterface() : rf95(DEFAULT_RFM95_CS, DEFAULT_RFM95_INT), _csPin(DEFAULT_RFM95_CS), _resetPin(DEFAULT_RFM95_RST), _interruptPin(DEFAULT_RFM95_INT), _frequency(1575.42), _power(23) {}
-        ComInterface(int csPin, int resetPin, int interruptPin, float frequency, int power) : rf95(csPin, interruptPin), _csPin(csPin), _resetPin(resetPin), _interruptPin(interruptPin), _frequency(frequency), _power(power) {}
+        ComInterface() : 
+            rf95(DEFAULT_RFM95_CS, DEFAULT_RFM95_INT), _csPin(DEFAULT_RFM95_CS), _resetPin(DEFAULT_RFM95_RST), _interruptPin(DEFAULT_RFM95_INT), _frequency(1575.42), _power(23) {}
+        ComInterface(int csPin, int resetPin, int interruptPin, float frequency, int power) : 
+            rf95(csPin, interruptPin), _csPin(csPin), _resetPin(resetPin), _interruptPin(interruptPin), _frequency(frequency), _power(power) {}
 
         void initialize()
         {
@@ -172,9 +174,6 @@ namespace wircom
 
         std::vector<std::tuple<MessageContentType, Message>> _acksRequired;
 
-        int _expectedPackets = 0;
-        int _receivedPackets = 0;
-
         const int _csPin = 10;
         const int _resetPin = 2;
         const int _interruptPin = 3;
@@ -199,27 +198,31 @@ namespace wircom
                 return;
             }
 
-            // we need to collect more packets
-            if (this->_messageBuffer.size() == 0)
+            std::cout 
+                << "Received packet " << res.packetNumber 
+                << " of " << res.packetCount 
+                << " for message type " << res.contentType 
+                << "for message ID " << res.messageID << std::endl;
+
+            if (this->_messageBuffer.find(res.messageID) == this->_messageBuffer.end())
             {
-                this->_expectedPackets = res.packetCount;
+                this->_messageBuffer[res.messageID] = std::vector<Message::MessageParsingResult>();
             }
 
-            std::cout << "Received packet " << res.packetNumber << " of " << res.packetCount << " for message type " << res.contentType << std::endl;
-
-            this->_messageBuffer.push_back(res);
+            this->_messageBuffer[res.messageID].push_back(res);
 
             // check if we have all the packets
-            if (this->_messageBuffer.size() == this->_expectedPackets)
+            if (this->_messageBuffer[res.messageID].size() == this->_messageBuffer[res.messageID][0].packetCount)
             {
+                std::vector<Message::MessageParsingResult> packets = this->_messageBuffer[res.messageID];
                 std::cout << "Received all packets for message type " << res.contentType << std::endl;
-                std::cout << "Collected " << this->_messageBuffer.size() << " packets" << std::endl;
+                std::cout << "Collected " << packets.size() << " packets" << std::endl;
                 std::vector<std::uint8_t> fullMessage;
                 // we need to order the packets by their sequence number
-                std::sort(this->_messageBuffer.begin(), this->_messageBuffer.end(), [](Message::MessageParsingResult a, Message::MessageParsingResult b)
+                std::sort(packets.begin(), packets.end(), [](Message::MessageParsingResult a, Message::MessageParsingResult b)
                           { return a.packetNumber < b.packetNumber; });
 
-                for (auto &msg : this->_messageBuffer)
+                for (auto &msg : packets)
                 {
                     fullMessage.insert(fullMessage.end(), msg.payload.begin(), msg.payload.end());
                 }
@@ -232,7 +235,7 @@ namespace wircom
                     }
                 }
 
-                this->_messageBuffer.clear();
+                this->_messageBuffer.erase(res.messageID);
             }
         }
     };
