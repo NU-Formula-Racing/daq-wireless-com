@@ -86,36 +86,50 @@ void ComInterface::listen(std::uint16_t timeout)
     {
         return;
     }
-
     // std::cout << "Listening for messages..." << std::endl;
 
-    if (this->rf95.waitAvailableTimeout(timeout))
+    long start = millis();
+    this->_radioState = RADIO_STATE_RECEIVING;
+    while (millis() - start < timeout)
     {
-        // std::cout << "Available message..." << std::endl;
-        uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
-        uint8_t len = sizeof(buf);
-
-        if (this->rf95.recv(buf, &len))
+        // wait for a bit
+        // we could be running on a different thread
+        // just in case another thread is trying to send a message
+        // yield to allow the other thread to run
+        if (this->_radioState == RADIO_STATE_TRANSMITTING)
         {
-            std::vector<std::uint8_t> data(buf, buf + len);
-            MessageParsingResult res = Message::decode(data);
-            if (!res.success)
-            {
-                return;
-            }
-
-            this->_handleRXMessage(res);
+            std::cout << "Radio is transmitting, waiting..." << std::endl;
+            YIELD;
+            continue;
         }
+
+        // check if we have a message
+        if (this->rf95.available())
+        {
+            break;
+        }
+        YIELD;
+    }
+    // std::cout << "Available message..." << std::endl;
+    uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
+    uint8_t len = sizeof(buf);
+
+    if (this->rf95.recv(buf, &len))
+    {
+        std::vector<std::uint8_t> data(buf, buf + len);
+        MessageParsingResult res = Message::decode(data);
+        if (!res.success)
+        {
+            return;
+        }
+
+        this->_handleRXMessage(res);
     }
 }
 
 void ComInterface::sendMessage(Message msg)
 {
-    if (this->_radioState != RADIO_STATE_IDLE)
-    {
-        return;
-    }
-
+    RadioState startingState = this->_radioState;
     this->_radioState = RADIO_STATE_TRANSMITTING;
 
     std::vector<std::vector<std::uint8_t>> packets = msg.encode();
@@ -127,8 +141,7 @@ void ComInterface::sendMessage(Message msg)
 
     // add the message to the list of messages that require an ack, if the message type requires one
     this->_acksRequired.push_back(std::make_tuple(msg.flag.getMessageContentType(), msg));
-
-    this->_radioState = RADIO_STATE_IDLE;
+    this->_radioState = startingState;
 }
 
 void ComInterface::_handleRXMessage(MessageParsingResult res)

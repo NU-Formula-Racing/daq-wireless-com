@@ -60,7 +60,7 @@ namespace wircom
         std::unordered_map<std::uint16_t, std::vector<MessageParsingResult>> _messageBuffer; // map of message IDs to message packets
         std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> _responseMessageCallbacks;
         std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> _requestMessageCallbacks;
-        RadioState _radioState = RADIO_STATE_IDLE;
+        volatile RadioState _radioState = RADIO_STATE_IDLE;
 
         std::vector<std::tuple<MessageContentType, Message>> _acksRequired;
 
