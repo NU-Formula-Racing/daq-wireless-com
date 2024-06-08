@@ -141,7 +141,11 @@ void ComInterface::sendMessage(Message msg, bool ackRequired)
 
     // add the message to the list of messages that require an ack, if the message type requires one
     if (ackRequired && msg.flag.getMessageType() == MessageType::MSG_REQUEST)
+    {
+        std::cout << "Sending message with ID " << msg.messageID << std::endl;
+        std::cout << "Expecting an ack..." << std::endl;
         this->_acksRequired[msg.messageID] = SentMessage{msg, millis(), 0};
+    }
     this->_radioState = startingState;
 }
 
@@ -150,15 +154,17 @@ void ComInterface::tick()
     std::vector<std::uint16_t> toRemove;
     for (auto &sentMessage : this->_acksRequired)
     {
-        SentMessage msg = sentMessage.second;
+        SentMessage &msg = sentMessage.second;
         std::uint16_t id = sentMessage.first;
         if (millis() - msg.timeSent > SEND_TIMEOUT)
         {
             if (msg.retries < MAX_RETRIES)
             {
-                std::cout << "Resending message with ID " << msg.message.messageID << std::endl;
+                std::cout << "Resending message with ID " << msg.message.messageID
+                << " (retry " << (int)msg.retries << ")" << std::endl;
                 // resend the message
                 this->sendMessage(msg.message, false);
+                msg.timeSent = millis();
                 msg.retries++;
             }
             else
