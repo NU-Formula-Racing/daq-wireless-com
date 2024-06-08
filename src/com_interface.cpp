@@ -39,7 +39,7 @@ void ComInterface::initialize()
 
 ComInterface ComInterface::addRXCallback(MessageType messageType, MessageContentType contentType, std::function<void(Message)> callback)
 {
-    std::unordered_map<MessageContentType, std::vector<std::function<void(Message)>>> callbacks =
+    std::unordered_map<MessageContentType, std::vector<std::function<void(Message)>>> &callbacks =
         (messageType == MessageType::MSG_REQUEST) ? this->_requestMessageCallbacks : this->_responseMessageCallbacks;
 
     if (callbacks.find(contentType) == callbacks.end())
@@ -130,9 +130,11 @@ void ComInterface::listen(std::uint16_t timeout)
         MessageParsingResult res = Message::decode(data);
         if (!res.success)
         {
+            std::cout << "Recieved a message, but couldn't parse!" << std::endl;
             return;
         }
 
+        std::cout << "Recieved a message that could be parsed!" << std::endl;
         this->_handleRXMessage(res);
     }
 }
@@ -196,6 +198,7 @@ void ComInterface::tick()
 
 void ComInterface::_handleRXMessage(MessageParsingResult res)
 {
+    std::cout << "res.packetCount " << res.packetCount << std::endl;
     if (res.packetCount == 1)
     {
         std::cout << "Received single packet message of type " << res.contentType << std::endl;
