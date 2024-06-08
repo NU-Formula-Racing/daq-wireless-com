@@ -30,12 +30,12 @@ MessageParsingResult Message::decode(const std::vector<std::uint8_t> &packet)
 
     MessageFlag flag;
     std::uint16_t messageID = (packet[3] << 8) | packet[4];
-
     flag.raw = packet[5];
+
     // print the flag bits
-    // std::cout << "Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
-    // std::cout << "Message Type: " << flag.getMessageType() << std::endl;
-    // std::cout << "Content Type: " << flag.getMessageContentType() << std::endl;
+    std::cout << "Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
+    std::cout << "Message Type: " << flag.getMessageType() << std::endl;
+    std::cout << "Content Type: " << flag.getMessageContentType() << std::endl;
     int payloadStart = SHORT_MSG_HEADER_SIZE - 1; // assume short message
 
     if (flag.isLongMessage())
@@ -128,6 +128,7 @@ std::vector<std::vector<std::uint8_t>> Message::encode() const
     int numPackets = 1;
     if (flag.isLongMessage())
     {
+        std::cout << "Encoding::Long message detected" << std::endl;
         // this a long message, it needs to be split into multiple packets
         float fNumPackets = (float)slice.size() / MAX_LONG_MSG_PAYLOAD_SIZE;
         if (fNumPackets > (int)fNumPackets)
@@ -174,29 +175,29 @@ std::vector<std::uint8_t> Message::_buildPacket(const std::vector<std::uint8_t> 
     // add the message ID
     packet.push_back((messageID >> 8) & 0xFF);
     packet.push_back(messageID & 0xFF);
-
     packet.push_back(flag.raw);
 
     // print the flag bits
-    // std::cout << "Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
+    // std::cout << "Building packet: " << std::endl;
+    // std::cout << "  Flag bits: " << std::bitset<8>(flag.raw) << std::endl;
 
     // make sure the packet size is less than MAX_PACKET_SIZE
     if (data.size() > MAX_SHORT_MSG_PAYLOAD_SIZE && !flag.isLongMessage())
     {
-        std::cout << "Data size is too large for a single packet" << std::endl;
+        // std::cout << "Data size is too large for a single packet" << std::endl;
         packet.push_back(0);
         return packet;
     }
     else if (data.size() > MAX_LONG_MSG_PAYLOAD_SIZE && flag.isLongMessage())
     {
-        std::cout << "Data size is too large for a single packet" << std::endl;
+        // std::cout << "Data size is too large for a single packet" << std::endl;
         packet.push_back(0);
         return packet;
     }
 
     if (packetCount > 1)
     {
-        // std::cout << "Packet number: " << packetNumber << " Packet count: " << packetCount << std::endl;
+        std::cout << "  Packet number: " << packetNumber << " Packet count: " << packetCount << std::endl;
         packet.push_back(packetNumber);
         packet.push_back(packetCount);
     }

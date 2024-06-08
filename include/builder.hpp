@@ -10,7 +10,7 @@ namespace wircom
     class MessageBuilder
     {
     public:
-        static Message createMetaMessageResponse(std::string schemaName, int major, int minor, int patch)
+        static Message createMetaMessageResponse(std::uint16_t id, std::string schemaName, int major, int minor, int patch)
         {
             std::vector<std::uint8_t> data;
             data.push_back(schemaName.size());
@@ -21,7 +21,7 @@ namespace wircom
             data.push_back(major);
             data.push_back(minor);
             data.push_back(patch);
-            return Message(MSG_RESPONSE, MSG_CON_META, data);
+            return Message(id, MSG_RESPONSE, MSG_CON_META, data);
         }
 
         static Message createMetaMessageRequest()
@@ -29,14 +29,14 @@ namespace wircom
             return Message(MSG_REQUEST, MSG_CON_META, std::vector<std::uint8_t>());
         }
 
-        static Message createDriveMessageResponse(const std::string driveContent)
+        static Message createDriveMessageResponse(std::uint16_t id, const std::string driveContent)
         {
             std::vector<std::uint8_t> data;
             for (char c : driveContent)
             {
                 data.push_back(c);
             }
-            return Message(MSG_RESPONSE, MSG_CON_DRIVE, data);
+            return Message(id, MSG_RESPONSE, MSG_CON_DRIVE, data);
         }
 
         static Message createDriveMessageRequest()
@@ -52,11 +52,11 @@ namespace wircom
             return Message(MSG_REQUEST, MSG_CON_SWITCH_DATA_RATE, payload);
         }
 
-        static Message createSwitchDataRateMessageResponse(bool okay)
+        static Message createSwitchDataRateMessageResponse(std::uint16_t id, bool okay)
         {
             std::vector<std::uint8_t> data;
             data.push_back(okay);
-            return Message(MSG_RESPONSE, MSG_CON_SWITCH_DATA_RATE, data);
+            return Message(id, MSG_RESPONSE, MSG_CON_SWITCH_DATA_RATE, data);
         }
     };
 

@@ -185,7 +185,7 @@ void ComInterface::_handleRXMessage(MessageParsingResult res)
         std::cout << "Received single packet message of type " << res.contentType << std::endl;
         std::cout << "Message length: " << res.payload.size() << std::endl;
         // this is a normal message, we don't need to collect any more packets
-        std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> callbacks =
+        std::unordered_map<MessageContentType, std::vector<std::function<void(Message)>>> callbacks =
             (res.messageType == MessageType::MSG_REQUEST) ? this->_requestMessageCallbacks : this->_responseMessageCallbacks;
 
         if (callbacks.find(res.contentType) != callbacks.end())
@@ -193,7 +193,7 @@ void ComInterface::_handleRXMessage(MessageParsingResult res)
             Message msg = Message(res.messageID, res.messageType, res.contentType, res.payload);
             for (auto &callback : callbacks[res.contentType])
             {
-                callback(res.payload);
+                callback(msg);
             }
         }
 

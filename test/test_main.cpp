@@ -43,7 +43,8 @@ void test_message_flag()
 void test_meta_message()
 {
     std::string schemaName = "Test";
-    Message msg = MessageBuilder::createMetaMessageResponse(schemaName, 1, 0, 1);
+    std::uint16_t id = 1;
+    Message msg = MessageBuilder::createMetaMessageResponse(id, schemaName, 1, 0, 1);
     TEST_ASSERT_EQUAL(MessageType::MSG_RESPONSE, msg.flag.getMessageType());
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_META, msg.flag.getMessageContentType());
 
@@ -77,6 +78,7 @@ void test_meta_message()
     TEST_ASSERT_TRUE(res.success);
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_META, res.contentType);
     TEST_ASSERT_EQUAL(8, res.payload.size());
+    TEST_ASSERT_EQUAL(id, res.messageID);
 
     std::cout << "Decoded metadata, testing the data" << std::endl;
 
@@ -124,8 +126,8 @@ void test_meta_message_request()
 void test_drive_message(void)
 {
     std::string content = "meta { .schema : 'test_schema'; .version : 1.0.0; } def TestStruct { float testVal; } def ToSend { TestStruct test; } frame(ToSend)";
-
-    Message msg = MessageBuilder::createDriveMessageResponse(content);
+    std::uint16_t id = 1;
+    Message msg = MessageBuilder::createDriveMessageResponse(id, content);
     TEST_ASSERT_EQUAL(MessageType::MSG_RESPONSE, msg.flag.getMessageType());
     TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, msg.flag.getMessageContentType());
 
@@ -184,7 +186,8 @@ void test_long_message(void)
         content += "abc_";
     }
 
-    Message msg = MessageBuilder::createDriveMessageResponse(content);
+    std::uint16_t id = 1;
+    Message msg = MessageBuilder::createDriveMessageResponse(id, content);
 
     // test the encoding
     std::vector<std::vector<std::uint8_t>> packets = msg.encode();
@@ -198,6 +201,7 @@ void test_long_message(void)
         MessageParsingResult res = Message::decode(packets[i]);
         TEST_ASSERT_TRUE(res.success);
         TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, res.contentType);
+        TEST_ASSERT_EQUAL(id, res.messageID);
 
         if (i == packets.size() - 1)
         {

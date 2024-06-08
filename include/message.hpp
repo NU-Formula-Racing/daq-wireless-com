@@ -15,6 +15,14 @@
 #define MAX_SHORT_MSG_PAYLOAD_SIZE (MAX_PACKET_SIZE - SHORT_MSG_HEADER_SIZE)
 #define MAX_LONG_MSG_PAYLOAD_SIZE (MAX_PACKET_SIZE - LONG_MSG_HEADER_SIZE)
 
+// HEADER STRUCTURE
+// 0-2: Identifier
+// 3-4: Message ID
+// 5: Message Flag
+// (if long message)
+// 6-7: Packet Number
+// 8-9: Packet Count
+
 namespace wircom
 {
     enum MessageType
@@ -144,7 +152,12 @@ namespace wircom
             }
             messageID = Message::_getNextMessageID();
         }
-        Message(std::uint16_t id, MessageType type, MessageContentType content, const std::vector<std::uint8_t> &data) : flag(MessageFlag(type, content)), data(data), messageID(id) {}
+        Message(std::uint16_t id, MessageType type, MessageContentType content, const std::vector<std::uint8_t> &data) : flag(MessageFlag(type, content)), data(data), messageID(id) {
+            if (data.size() > MAX_SHORT_MSG_PAYLOAD_SIZE)
+            {
+                this->flag.markAsLongMessage();
+            }
+        }
 
         static MessageParsingResult decode(const std::vector<std::uint8_t> &packet);
         static MessageParsingResult decode(const std::vector<std::vector<std::uint8_t>> &packets);

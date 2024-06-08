@@ -54,7 +54,7 @@ namespace wircom
         /// @param callback The callback function to add.
         /// @return this, allowing for chaining of function calls.
         ComInterface addRXCallback(MessageType messageType, MessageContentType contentType, std::function<void(Message)> callback);
-        ComInterface addRXCallback(MessageType messageType, std::vector<MessageContentType> contentTypes, std::function<void(Message>)> callback);
+        ComInterface addRXCallback(MessageType messageType, std::vector<MessageContentType> contentTypes, std::function<void(Message)> callback);
         ComInterface addRXCallbackToAny(MessageType messageType, std::function<void(Message)> callback);
 
         void switchDataRate(int spreadingFactor, int bandwidth);
