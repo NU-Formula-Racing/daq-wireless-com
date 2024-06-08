@@ -104,7 +104,7 @@ void ComInterface::listen(std::uint16_t timeout)
         // std::cout << "Checking..." << std::endl;
         if (this->_radioState == RADIO_STATE_TRANSMITTING)
         {
-            std::cout << "Radio is transmitting, waiting..." << std::endl;
+            // std::cout << "Radio is transmitting, waiting..." << std::endl;
             YIELD;
             continue;
         }
@@ -116,15 +116,13 @@ void ComInterface::listen(std::uint16_t timeout)
         }
         YIELD;
     }
-
-    std::cout << "Finished listening" << std::endl;
-
+    // std::cout << "Finished listening" << std::endl;
     this->_radioState = RADIO_STATE_IDLE;
 
     if (this->rf95.available() == false)
         return; // nothing
 
-    std::cout << "Available message..." << std::endl;
+    // std::cout << "Available message..." << std::endl;
     uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
     uint8_t len = sizeof(buf);
 
@@ -199,7 +197,7 @@ void ComInterface::tick()
 
 void ComInterface::_handleRXMessage(MessageParsingResult res)
 {
-    std::cout << "res.packetCount " << res.packetCount << std::endl;
+    // std::cout << "res.packetCount " << res.packetCount << std::endl;
     if (res.packetCount == 1)
     {
         std::cout << "Received single packet message of type " << res.contentType << std::endl;
