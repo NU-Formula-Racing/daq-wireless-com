@@ -134,6 +134,8 @@ namespace wircom
         std::uint16_t messageID;
         inline static std::uint16_t messageIDCounter;
 
+        Message() : flag(), data(), messageID(0) {}
+        Message(const Message &other) : flag(other.flag), data(other.data), messageID(other.messageID) {}
         Message(MessageType type, MessageContentType content, const std::vector<std::uint8_t> &data) : flag(MessageFlag(type, content)), data(data)
         {
             if (data.size() > MAX_SHORT_MSG_PAYLOAD_SIZE)
@@ -142,6 +144,7 @@ namespace wircom
             }
             messageID = Message::_getNextMessageID();
         }
+        Message(std::uint16_t id, MessageType type, MessageContentType content, const std::vector<std::uint8_t> &data) : flag(MessageFlag(type, content)), data(data), messageID(id) {}
 
         static MessageParsingResult decode(const std::vector<std::uint8_t> &packet);
         static MessageParsingResult decode(const std::vector<std::vector<std::uint8_t>> &packets);

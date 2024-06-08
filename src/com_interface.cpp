@@ -37,14 +37,14 @@ void ComInterface::initialize()
     this->rf95.setTxPower(this->_power, false);
 }
 
-ComInterface ComInterface::addRXCallback(MessageType messageType, MessageContentType contentType, std::function<void(std::vector<std::uint8_t>)> callback)
+ComInterface ComInterface::addRXCallback(MessageType messageType, MessageContentType contentType, std::function<void(Message)> callback)
 {
-    std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> callbacks = 
+    std::unordered_map<MessageContentType, std::vector<std::function<void(Message)>>> callbacks =
         (messageType == MessageType::MSG_REQUEST) ? this->_requestMessageCallbacks : this->_responseMessageCallbacks;
-        
+
     if (callbacks.find(contentType) == callbacks.end())
     {
-        callbacks[contentType] = std::vector<std::function<void(std::vector<std::uint8_t>)>>();
+        callbacks[contentType] = std::vector<std::function<void(Message)>>();
     }
 
     callbacks[contentType].push_back(callback);
@@ -52,7 +52,7 @@ ComInterface ComInterface::addRXCallback(MessageType messageType, MessageContent
     return *this;
 }
 
-ComInterface ComInterface::addRXCallback(MessageType messageType, std::vector<MessageContentType> contentTypes, std::function<void(std::vector<std::uint8_t>)> callback)
+ComInterface ComInterface::addRXCallback(MessageType messageType, std::vector<MessageContentType> contentTypes, std::function<void(Message)> callback)
 {
     for (MessageContentType type : contentTypes)
     {
@@ -62,7 +62,7 @@ ComInterface ComInterface::addRXCallback(MessageType messageType, std::vector<Me
     return *this;
 }
 
-ComInterface ComInterface::addRXCallbackToAny(MessageType messageType, std::function<void(std::vector<std::uint8_t>)> callback)
+ComInterface ComInterface::addRXCallbackToAny(MessageType messageType, std::function<void(Message)> callback)
 {
     std::vector<MessageContentType> types = {
         MessageContentType::MSG_CON_META,
@@ -127,7 +127,7 @@ void ComInterface::listen(std::uint16_t timeout)
     }
 }
 
-void ComInterface::sendMessage(Message msg)
+void ComInterface::sendMessage(Message msg, bool ackRequired)
 {
     RadioState startingState = this->_radioState;
     this->_radioState = RADIO_STATE_TRANSMITTING;
@@ -140,8 +140,42 @@ void ComInterface::sendMessage(Message msg)
     }
 
     // add the message to the list of messages that require an ack, if the message type requires one
-    this->_acksRequired.push_back(std::make_tuple(msg.flag.getMessageContentType(), msg));
+    if (ackRequired && msg.flag.getMessageType() == MessageType::MSG_REQUEST)
+        this->_acksRequired[msg.messageID] = SentMessage{msg, millis(), 0};
     this->_radioState = startingState;
+}
+
+void ComInterface::tick()
+{
+    std::vector<std::uint16_t> toRemove;
+    for (auto &sentMessage : this->_acksRequired)
+    {
+        SentMessage msg = sentMessage.second;
+        std::uint16_t id = sentMessage.first;
+        if (millis() - msg.timeSent > SEND_TIMEOUT)
+        {
+            if (msg.retries < MAX_RETRIES)
+            {
+                std::cout << "Resending message with ID " << msg.message.messageID << std::endl;
+                // resend the message
+                this->sendMessage(msg.message, false);
+                msg.retries++;
+            }
+            else
+            {
+                // we've reached the max number of retries
+                // remove the message from the list
+                std::cout << "Message with ID " << msg.message.messageID << " has timed out" << std::endl;
+                toRemove.push_back(msg.message.messageID);
+            }
+        }
+    }
+
+    for (std::uint16_t id : toRemove)
+    {
+        this->_acksRequired.erase(id);
+    }
+
 }
 
 void ComInterface::_handleRXMessage(MessageParsingResult res)
@@ -151,15 +185,22 @@ void ComInterface::_handleRXMessage(MessageParsingResult res)
         std::cout << "Received single packet message of type " << res.contentType << std::endl;
         std::cout << "Message length: " << res.payload.size() << std::endl;
         // this is a normal message, we don't need to collect any more packets
-        std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> callbacks = 
+        std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> callbacks =
             (res.messageType == MessageType::MSG_REQUEST) ? this->_requestMessageCallbacks : this->_responseMessageCallbacks;
 
         if (callbacks.find(res.contentType) != callbacks.end())
         {
+            Message msg = Message(res.messageID, res.messageType, res.contentType, res.payload);
             for (auto &callback : callbacks[res.contentType])
             {
                 callback(res.payload);
             }
+        }
+
+        if (res.messageType == MessageType::MSG_RESPONSE)
+        {
+            // this is a completed message, mark it as acked
+            this->_acksRequired.erase(res.messageID);
         }
 
         return;
@@ -194,15 +235,22 @@ void ComInterface::_handleRXMessage(MessageParsingResult res)
             fullMessage.insert(fullMessage.end(), msg.payload.begin(), msg.payload.end());
         }
 
-        std::unordered_map<MessageContentType, std::vector<std::function<void(std::vector<std::uint8_t>)>>> callbacks = 
+        std::unordered_map<MessageContentType, std::vector<std::function<void(Message)>>> callbacks =
             (res.messageType == MessageType::MSG_REQUEST) ? this->_requestMessageCallbacks : this->_responseMessageCallbacks;
 
         if (callbacks.find(res.contentType) != callbacks.end())
         {
+            Message msg = Message(res.messageID, res.messageType, res.contentType, fullMessage);
             for (auto &callback : callbacks[res.contentType])
             {
-                callback(fullMessage);
+                callback(msg);
             }
+        }
+
+        if (res.messageType == MessageType::MSG_RESPONSE)
+        {
+            // this is a completed message, mark it as acked
+            this->_acksRequired.erase(res.messageID);
         }
 
         this->_messageBuffer.erase(res.messageID);
