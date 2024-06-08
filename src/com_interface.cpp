@@ -82,14 +82,17 @@ void ComInterface::switchDataRate(int spreadingFactor, int bandwidth)
 
 void ComInterface::listen(std::uint16_t timeout)
 {
-    if (this->_radioState != RADIO_STATE_IDLE)
-    {
-        std::cout << "aborting listen -- the radio is being used" << std::endl;
-        return;
-    }
     // std::cout << "Listening for messages..." << std::endl;
 
     unsigned long start = millis();
+
+    // wait until the radio is done transmitting
+    while (this->_radioState == RADIO_STATE_TRANSMITTING && millis() - start < timeout)
+    {
+        // std::cout << "Radio is transmitting, waiting..." << std::endl;
+        YIELD;
+    }
+
     this->_radioState = RADIO_STATE_RECEIVING;
     // std::cout << "starting timeout at " << start << std::endl;
     while (millis() - start < timeout)
@@ -118,7 +121,8 @@ void ComInterface::listen(std::uint16_t timeout)
 
     this->_radioState = RADIO_STATE_IDLE;
 
-    if (this->rf95.available() == false) return; // nothing 
+    if (this->rf95.available() == false)
+        return; // nothing
 
     std::cout << "Available message..." << std::endl;
     uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
@@ -130,11 +134,9 @@ void ComInterface::listen(std::uint16_t timeout)
         MessageParsingResult res = Message::decode(data);
         if (!res.success)
         {
-            std::cout << "Recieved a message, but couldn't parse!" << std::endl;
             return;
         }
 
-        std::cout << "Recieved a message that could be parsed!" << std::endl;
         this->_handleRXMessage(res);
     }
 }
@@ -173,7 +175,7 @@ void ComInterface::tick()
             if (msg.retries < MAX_RETRIES)
             {
                 std::cout << "Resending message with ID " << msg.message.messageID
-                << " (retry " << (int)msg.retries << ")" << std::endl;
+                          << " (retry " << (int)msg.retries << ")" << std::endl;
                 // resend the message
                 this->sendMessage(msg.message, false);
                 msg.timeSent = millis();
@@ -193,7 +195,6 @@ void ComInterface::tick()
     {
         this->_acksRequired.erase(id);
     }
-
 }
 
 void ComInterface::_handleRXMessage(MessageParsingResult res)
