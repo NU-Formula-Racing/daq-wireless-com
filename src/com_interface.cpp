@@ -84,18 +84,21 @@ void ComInterface::listen(std::uint16_t timeout)
 {
     if (this->_radioState != RADIO_STATE_IDLE)
     {
+        std::cout << "aborting listen -- the radio is being used" << std::endl;
         return;
     }
     // std::cout << "Listening for messages..." << std::endl;
 
-    long start = millis();
+    unsigned long start = millis();
     this->_radioState = RADIO_STATE_RECEIVING;
+    // std::cout << "starting timeout at " << start << std::endl;
     while (millis() - start < timeout)
     {
         // wait for a bit
         // we could be running on a different thread
         // just in case another thread is trying to send a message
         // yield to allow the other thread to run
+        // std::cout << "Checking..." << std::endl;
         if (this->_radioState == RADIO_STATE_TRANSMITTING)
         {
             std::cout << "Radio is transmitting, waiting..." << std::endl;
@@ -110,7 +113,14 @@ void ComInterface::listen(std::uint16_t timeout)
         }
         YIELD;
     }
-    // std::cout << "Available message..." << std::endl;
+
+    std::cout << "Finished listening" << std::endl;
+
+    this->_radioState = RADIO_STATE_IDLE;
+
+    if (this->rf95.available() == false) return; // nothing 
+
+    std::cout << "Available message..." << std::endl;
     uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
     uint8_t len = sizeof(buf);
 
