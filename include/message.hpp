@@ -9,7 +9,7 @@
 
 #define MSG_IDENTIFIER "NFR"
 #define BIT_FLAG(x) (1 << x)
-#define MAX_PACKET_SIZE 256 // in bytes
+#define MAX_PACKET_SIZE RH_RF95_MAX_MESSAGE_LEN
 #define SHORT_MSG_HEADER_SIZE 7
 #define LONG_MSG_HEADER_SIZE 9 // for long messages
 #define MAX_SHORT_MSG_PAYLOAD_SIZE (MAX_PACKET_SIZE - SHORT_MSG_HEADER_SIZE)

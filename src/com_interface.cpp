@@ -200,8 +200,8 @@ void ComInterface::_handleRXMessage(MessageParsingResult res)
     // std::cout << "res.packetCount " << res.packetCount << std::endl;
     if (res.packetCount == 1)
     {
-        std::cout << "Received single packet message of type " << res.contentType << std::endl;
-        std::cout << "Message length: " << res.payload.size() << std::endl;
+        // std::cout << "Received single packet message of type " << res.contentType << std::endl;
+        // std::cout << "Message length: " << res.payload.size() << std::endl;
         // this is a normal message, we don't need to collect any more packets
         std::unordered_map<MessageContentType, std::vector<std::function<void(Message)>>> callbacks =
             (res.messageType == MessageType::MSG_REQUEST) ? this->_requestMessageCallbacks : this->_responseMessageCallbacks;
@@ -224,11 +224,11 @@ void ComInterface::_handleRXMessage(MessageParsingResult res)
         return;
     }
 
-    std::cout
-        << "Received packet " << res.packetNumber
-        << " of " << res.packetCount
-        << " for message type " << res.contentType
-        << "for message ID " << res.messageID << std::endl;
+    // std::cout
+    //     << "Received packet " << res.packetNumber
+    //     << " of " << res.packetCount
+    //     << " for message type " << res.contentType
+    //     << "for message ID " << res.messageID << std::endl;
 
     if (this->_messageBuffer.find(res.messageID) == this->_messageBuffer.end())
     {
@@ -241,8 +241,8 @@ void ComInterface::_handleRXMessage(MessageParsingResult res)
     if (this->_messageBuffer[res.messageID].size() == this->_messageBuffer[res.messageID][0].packetCount)
     {
         std::vector<MessageParsingResult> packets = this->_messageBuffer[res.messageID];
-        std::cout << "Received all packets for message type " << res.contentType << std::endl;
-        std::cout << "Collected " << packets.size() << " packets" << std::endl;
+        // std::cout << "Received all packets for message type " << res.contentType << std::endl;
+        // std::cout << "Collected " << packets.size() << " packets" << std::endl;
         std::vector<std::uint8_t> fullMessage;
         // we need to order the packets by their sequence number
         std::sort(packets.begin(), packets.end(), [](MessageParsingResult a, MessageParsingResult b)

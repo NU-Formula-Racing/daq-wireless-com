@@ -63,6 +63,11 @@ namespace wircom
         {
             return Message(MSG_RESPONSE, MSG_CON_DATA_TRANSFER, data);
         }
+
+        static Message createDataTransferRequest()
+        {
+            return Message(MSG_REQUEST, MSG_CON_DATA_TRANSFER, std::vector<std::uint8_t>());
+        }
     };
 
 // MESSAGE CONTENT STRUCTS

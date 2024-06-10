@@ -20,7 +20,7 @@ namespace wircom
 #define DEFAULT_RFM95_RST 2 // Reset pin
 #define DEFAULT_RFM95_INT 3 // Interrupt pin
 #define SEND_TIMEOUT 1000
-#define MAX_RETRIES 3
+#define MAX_RETRIES 20
 
     enum RadioState
     {
