@@ -58,6 +58,11 @@ namespace wircom
             data.push_back(okay);
             return Message(id, MSG_RESPONSE, MSG_CON_SWITCH_DATA_RATE, data);
         }
+
+        static Message createDataTransferMessage(const std::vector<std::uint8_t> &data)
+        {
+            return Message(MSG_RESPONSE, MSG_CON_DATA_TRANSFER, data);
+        }
     };
 
 // MESSAGE CONTENT STRUCTS
@@ -80,6 +85,11 @@ struct SwitchDataRateContent
 {
     int bandwidth;
     int frequency;
+};
+
+struct DataTransferContent
+{
+    std::vector<std::uint8_t> data;
 };
 
 #pragma endregion
@@ -144,9 +154,9 @@ struct SwitchDataRateContent
             return {true, SwitchDataRateContent{bandwidth, frequency}};
         }
 
-        static ContentResult<MetaContent> parseMetaContent(const Message &msg)
+        static ContentResult<DataTransferContent> parseDataTransferContent(const std::vector<std::uint8_t> &data)
         {
-            return parseMetaContent(msg.data);
+            return {true, DataTransferContent{data}};
         }
     };
 }
