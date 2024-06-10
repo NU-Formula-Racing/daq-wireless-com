@@ -117,8 +117,8 @@ namespace wircom
     struct MessageParsingResult
     {
         bool success;
-        int packetNumber;
-        int packetCount;
+        std::uint8_t packetNumber;
+        std::uint8_t packetCount;
         std::uint16_t messageID;
         MessageType messageType;
         MessageContentType contentType;
@@ -131,7 +131,7 @@ namespace wircom
 
         MessageParsingResult(bool success, std::uint16_t id, MessageType messageType, MessageContentType contentType, std::vector<std::uint8_t> data) 
             : success(success), messageID(id), messageType(messageType), contentType(contentType), payload(data), packetNumber(1), packetCount(1) {}
-        MessageParsingResult(bool success, std::uint16_t id, int packetNumber, int packetCount, MessageType messageType, MessageContentType contentType, std::vector<std::uint8_t> data) 
+        MessageParsingResult(bool success, std::uint16_t id, std::uint8_t packetNumber, std::uint8_t packetCount, MessageType messageType, MessageContentType contentType, std::vector<std::uint8_t> data) 
             : success(success), messageID(id), packetNumber(packetNumber), packetCount(packetCount), messageType(messageType), contentType(contentType), payload(data) {}
     };
 
@@ -166,7 +166,7 @@ namespace wircom
         bool operator==(const Message &other) const;
 
     private:
-        std::vector<std::uint8_t> _buildPacket(const std::vector<std::uint8_t> &data, int packetNumber = 0, int packetCount = 0) const;
+        std::vector<std::uint8_t> _buildPacket(const std::vector<std::uint8_t> &data, std::uint8_t packetNumber = 0, std::uint8_t packetCount = 0) const;
         static std::uint16_t _getNextMessageID()
         {
             return messageIDCounter++;

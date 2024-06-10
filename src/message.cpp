@@ -125,22 +125,22 @@ std::vector<std::vector<std::uint8_t>> Message::encode() const
         return packets;
     }
 
-    int numPackets = 1;
+    std::uint8_t numPackets = 1;
     if (flag.isLongMessage())
     {
         std::cout << "Encoding::Long message detected" << std::endl;
         // this a long message, it needs to be split into multiple packets
         float fNumPackets = (float)slice.size() / MAX_LONG_MSG_PAYLOAD_SIZE;
-        if (fNumPackets > (int)fNumPackets)
+        if (fNumPackets > (std::uint8_t)fNumPackets)
         {
-            numPackets = (int)fNumPackets + 1;
+            numPackets = (std::uint8_t)fNumPackets + 1;
         }
         else
         {
-            numPackets = (int)fNumPackets;
+            numPackets = (std::uint8_t)fNumPackets;
         }
     }
-    int packetIndex = 0;
+    std::uint8_t packetIndex = 0;
     int maxPayloadSize = (flag.isLongMessage()) ? MAX_LONG_MSG_PAYLOAD_SIZE : MAX_SHORT_MSG_PAYLOAD_SIZE;
 
     // std::cout << "Number of packets: " << numPackets << std::endl;
@@ -163,7 +163,7 @@ std::vector<std::vector<std::uint8_t>> Message::encode() const
     return packets;
 }
 
-std::vector<std::uint8_t> Message::_buildPacket(const std::vector<std::uint8_t> &data, int packetNumber, int packetCount) const
+std::vector<std::uint8_t> Message::_buildPacket(const std::vector<std::uint8_t> &data, std::uint8_t packetNumber, std::uint8_t packetCount) const
 {
     std::vector<std::uint8_t> packet;
     for (char c : MSG_IDENTIFIER)

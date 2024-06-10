@@ -224,18 +224,35 @@ void ComInterface::_handleRXMessage(MessageParsingResult res)
         return;
     }
 
-    // std::cout
-    //     << "Received packet " << res.packetNumber
-    //     << " of " << res.packetCount
-    //     << " for message type " << res.contentType
-    //     << "for message ID " << res.messageID << std::endl;
+    std::cout
+        << "Received packet " << res.packetNumber
+        << " of " << res.packetCount
+        << " for message type " << res.contentType
+        << " for message ID " << res.messageID << std::endl;
 
     if (this->_messageBuffer.find(res.messageID) == this->_messageBuffer.end())
     {
         this->_messageBuffer[res.messageID] = std::vector<MessageParsingResult>();
     }
 
+    // check if we already have this packet
+    for (auto &msg : this->_messageBuffer[res.messageID])
+    {
+        if (msg.packetNumber == res.packetNumber)
+        {
+            // we already have this packet
+            return;
+        }
+    }
+
     this->_messageBuffer[res.messageID].push_back(res);
+
+    // go and update the timers on the request, if it exists
+    if (this->_acksRequired.find(res.messageID) != this->_acksRequired.end())
+    {
+        std::cout << "Resetting timeout for message with ID " << res.messageID << std::endl;
+        this->_acksRequired[res.messageID].timeSent = millis();
+    }
 
     // check if we have all the packets
     if (this->_messageBuffer[res.messageID].size() == this->_messageBuffer[res.messageID][0].packetCount)
