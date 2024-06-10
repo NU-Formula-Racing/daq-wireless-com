@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <bitset>
+#include <RH_RF95.h> 
 
 #define MSG_IDENTIFIER "NFR"
 #define BIT_FLAG(x) (1 << x)
