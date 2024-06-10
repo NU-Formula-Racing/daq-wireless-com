@@ -149,7 +149,7 @@ void test_drive_message(void)
         TEST_ASSERT_EQUAL(content[i], res.payload[i]);
     }
 
-    ContentResult<DriveContentResponse> driveContent = MessageParser::parseDriveContent(res.payload);
+    ContentResult<DriveContent> driveContent = MessageParser::parseDriveContent(res.payload);
     TEST_ASSERT_TRUE(driveContent.success);
     for (int i = 0; i < content.size(); i++)
     {

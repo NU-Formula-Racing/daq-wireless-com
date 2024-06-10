@@ -166,4 +166,10 @@ struct DataTransferContent
     };
 }
 
+template class wircom::ContentResult<wircom::MetaContent>;
+template class wircom::ContentResult<wircom::DriveContent>;
+template class wircom::ContentResult<wircom::SwitchDataRateContent>;
+template class wircom::ContentResult<wircom::DataTransferContent>;
+
+
 #endif // __BUILDER_H__

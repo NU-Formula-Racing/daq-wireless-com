@@ -6,11 +6,20 @@
 #include <iostream>
 #include <vector>
 #include <bitset>
+
+#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
 #include <RH_RF95.h> 
+#endif
 
 #define MSG_IDENTIFIER "NFR"
 #define BIT_FLAG(x) (1 << x)
+
+#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
 #define MAX_PACKET_SIZE RH_RF95_MAX_MESSAGE_LEN
+#else
+#define MAX_PACKET_SIZE 251
+#endif
+
 #define SHORT_MSG_HEADER_SIZE 7
 #define LONG_MSG_HEADER_SIZE 9 // for long messages
 #define MAX_SHORT_MSG_PAYLOAD_SIZE (MAX_PACKET_SIZE - SHORT_MSG_HEADER_SIZE)
