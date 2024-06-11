@@ -74,7 +74,7 @@ MessageParsingResult Message::decode(const std::vector<std::uint8_t> &packet)
 
     if (flag.isLongMessage())
     {
-        return MessageParsingResult(true, messageID, packet[payloadStart + 1], packet[payloadStart + 2], flag.getMessageType(), flag.getMessageContentType(), payload);
+        return MessageParsingResult(true, messageID, packet[payloadStart - 2], packet[payloadStart - 1], flag.getMessageType(), flag.getMessageContentType(), payload);
     }
 
     return MessageParsingResult(true, messageID, flag.getMessageType(), flag.getMessageContentType(), payload);

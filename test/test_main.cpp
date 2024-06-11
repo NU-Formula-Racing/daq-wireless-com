@@ -202,6 +202,8 @@ void test_long_message(void)
         TEST_ASSERT_TRUE(res.success);
         TEST_ASSERT_EQUAL(MessageContentType::MSG_CON_DRIVE, res.contentType);
         TEST_ASSERT_EQUAL(id, res.messageID);
+        TEST_ASSERT_EQUAL(packets.size(), res.packetCount);
+        TEST_ASSERT_EQUAL(i, res.packetNumber);
 
         if (i == packets.size() - 1)
         {
