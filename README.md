@@ -19,7 +19,7 @@ wircom was built on top of the [RH_RF95 library](https://www.airspayce.com/mikem
 - **Reliability**: wircom implements a simple, yet effective, acknowledgment system to ensure that data is received correctly. This mechanism allows for the retransmission of lost packets.
 - **An easy-to-use API**: wircom provides a simple API for sending and receiving data. Focus on your application, not on the details of wireless communication. Handles the serialization and deserialization of data for you.
 
-This library is heavily integrated with the [daqser](https://github.com/NU-Formula-Racing/daq-serializer-24) library, which is our custom data serialization library. It is used to serialize and deserialize data for transmission over wircom.
+This library is heavily integrated with the [daqser](https://github.com/NU-Formula-Racing/daq-serializer-24) library, which is our custom data serialization library. Although it does not use daqser internally, the primary use case, and all provided utilities, are a built around a network that uses daqser to communicate.
 
 ## Suggested Network Topology
 
